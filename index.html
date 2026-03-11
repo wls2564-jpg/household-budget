@@ -295,11 +295,9 @@
     <input class="form-input" id="shareUserName" placeholder="남편">
     <div class="form-label">파트너 이름</div>
     <input class="form-input" id="sharePartnerName" placeholder="아내">
-    <div class="form-label">Spreadsheet ID</div>
-    <input class="form-input" id="shareSheetId" placeholder="URL에서 /d/ 뒤 ID">
-    <div class="form-label">Google Access Token</div>
-    <input class="form-input" id="shareToken" placeholder="ya29...." type="password">
-    <button onclick="saveShareSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:4px;">저장 및 연결</button>
+    <div class="form-label">Apps Script URL</div>
+    <input class="form-input" id="shareSheetId" placeholder="https://script.google.com/..." style="font-size:11px;">
+    <button onclick="saveShareSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:4px;">저장</button>
   </div>
 </div>
 
@@ -453,6 +451,7 @@ let state = {
   budgetEditing: false,
   pendingEntries: null,
   syncStatus:"idle",
+  scriptUrl:"https://script.google.com/macros/s/AKfycbwB8H4mu9c_7sFQBw6aZr13QyxbaSWJetguQUuSF_MDeEcDSS4uGs9fVTlkoHiMdmoz/exec",
 };
 
 function save(key) {
@@ -743,17 +742,15 @@ function renderSettings(){
 function renderShare(){
   document.getElementById("shareUserName").value=state.settings.userName||"남편";
   document.getElementById("sharePartnerName").value=state.settings.partnerName||"아내";
-  document.getElementById("shareSheetId").value=state.settings.sheetId||"";
-  document.getElementById("shareToken").value=state.settings.accessToken||"";
+  document.getElementById("shareSheetId").value=state.scriptUrl||"";
   const st=state.syncStatus;
   const el=document.getElementById("syncStatus");
   const badge=document.getElementById("syncBadge");
-  const map={idle:["📡","연결 안 됨","#F2F2F7","var(--mid)"],syncing:["⏳","동기화 중...","#F2F2F7","var(--mid)"],ok:["✅","동기화 연결됨","#30D15818","var(--green)"],err:["❌","연결 오류","#FF453A18","var(--red)"]};
+  const map={idle:["📡","연결 중...","#F2F2F7","var(--mid)"],syncing:["⏳","동기화 중...","#F2F2F7","var(--mid)"],ok:["✅","구글 시트 연동됨","#30D15818","var(--green)"],err:["❌","연결 오류","#FF453A18","var(--red)"]};
   const [ic,lb,bg,cl]=map[st]||map.idle;
   el.style.background=bg;
   el.innerHTML=`<span style="font-size:18px;">${ic}</span><span style="font-size:13px;font-weight:600;color:${cl};">${lb}</span>`;
-  if(state.settings.sheetId){ badge.style.display="block"; badge.style.color=cl; badge.textContent=ic+" "+lb; }
-  else badge.style.display="none";
+  badge.style.display="block"; badge.style.color=cl; badge.textContent=ic+" "+lb;
 }
 
 // ═══════════════════════════════════════════
@@ -970,10 +967,9 @@ function saveApiSettings(){
 function saveShareSettings(){
   state.settings.userName=document.getElementById("shareUserName").value.trim()||"남편";
   state.settings.partnerName=document.getElementById("sharePartnerName").value.trim()||"아내";
-  state.settings.sheetId=document.getElementById("shareSheetId").value.trim();
-  state.settings.accessToken=document.getElementById("shareToken").value.trim();
+  state.scriptUrl=document.getElementById("shareSheetId").value.trim();
   save("settings"); showToast("저장됐어요 ✅");
-  if(state.settings.sheetId) startSync();
+  startSync();
 }
 function addCard(){
   const name=document.getElementById("newCardName").value.trim();
@@ -1030,39 +1026,36 @@ function download(content,filename,type){
 }
 
 // ═══════════════════════════════════════════
-// GOOGLE SHEETS SYNC
+// APPS SCRIPT SYNC
 // ═══════════════════════════════════════════
 let syncTimer=null;
 function startSync(){
   if(syncTimer) clearInterval(syncTimer);
-  pullFromSheets();
-  syncTimer=setInterval(pullFromSheets,30000);
+  pullFromScript();
+  syncTimer=setInterval(pullFromScript,30000);
 }
-async function pullFromSheets(){
-  if(!state.settings.sheetId||!state.settings.accessToken) return;
+async function pullFromScript(){
+  if(!state.scriptUrl) return;
   state.syncStatus="syncing"; renderShare();
   try {
-    const res=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${state.settings.sheetId}/values/entries!A:Z`,
-      {headers:{Authorization:`Bearer ${state.settings.accessToken}`}});
+    const res=await fetch(state.scriptUrl);
     const d=await res.json();
-    if(d.error){ state.syncStatus="err"; renderShare(); return; }
-    const rows=d.values||[];
-    if(rows.length<2){ state.syncStatus="ok"; renderShare(); return; }
-    const [headers,...data]=rows;
-    const remote=data.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]||""])));
+    if(!d.data){ state.syncStatus="err"; renderShare(); return; }
     const ids=new Set(state.entries.map(e=>e.id));
-    const news=remote.filter(r=>r.id&&!ids.has(r.id)).map(r=>({...r,amount:Number(r.amount)||0}));
+    const news=d.data.filter(r=>r.id&&!ids.has(r.id)).map(r=>({...r,amount:Number(r.amount)||0}));
     if(news.length){ state.entries=[...state.entries,...news]; save("entries"); render(); }
     state.syncStatus="ok"; renderShare();
   } catch{ state.syncStatus="err"; renderShare(); }
 }
 async function pushToSheets(list){
-  if(!state.settings.sheetId||!state.settings.accessToken) return;
-  const rows=list.map(e=>[e.id,e.date,e.category,e.amount,e.type,e.note||"",e.card||"",e.addedBy||""]);
+  if(!state.scriptUrl) return;
   try {
-    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${state.settings.sheetId}/values/entries!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-      {method:"POST",headers:{Authorization:`Bearer ${state.settings.accessToken}`,"Content-Type":"application/json"},
-       body:JSON.stringify({values:rows})});
+    await fetch(state.scriptUrl,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"add", entries:list})
+    });
   } catch{}
 }
 
@@ -1088,7 +1081,7 @@ function checkRecurring(){
 // ═══════════════════════════════════════════
 checkRecurring();
 render();
-if(state.settings.sheetId&&state.settings.accessToken) startSync();
+startSync();
 </script>
 </body>
 </html>
