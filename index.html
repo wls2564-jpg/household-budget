@@ -275,7 +275,11 @@
 <!-- SETTINGS TAB -->
 <div id="tab-settings" class="tab-content">
   <div class="card">
-    <div class="card-title">👤 내 이름</div>
+    <div class="card-title">🤖 Gemini API 키</div>
+    <div class="form-label">API 키 (무료)</div>
+    <input class="form-input" id="geminiKeyInput" placeholder="AIza..." type="password">
+    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">→ Google AI Studio에서 무료 발급</a>
+    <div class="form-label" style="margin-top:10px;">내 이름</div>
     <input class="form-input" id="userNameInput" placeholder="남편">
     <button onclick="saveApiSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:6px;">저장</button>
   </div>
@@ -469,15 +473,11 @@ function allMonths(){
   return ms;
 }
 function changeMonth(dir){
-  const ms=allMonths(); const i=ms.indexOf(state.curMonth);
-  const ni=i-dir; // ‹=prev(larger index), ›=next(smaller index)
-  if(ni>=0&&ni<ms.length){ state.curMonth=ms[ni]; render(); }
-  else if(dir===1&&i>0){ state.curMonth=ms[i-1]; render(); }
-  else if(dir===-1){ // go to previous month even if no data
-    const [y,m]=state.curMonth.split("-").map(Number);
-    const d=new Date(y,m-2,1);
-    state.curMonth=ym(d); render();
-  }
+  // dir: -1 = 이전달(‹), +1 = 다음달(›)
+  const [y,m]=state.curMonth.split("-").map(Number);
+  const d=new Date(y,m-1+dir,1);
+  state.curMonth=ym(d);
+  render();
 }
 
 // ═══════════════════════════════════════════
@@ -506,12 +506,13 @@ let donutChart=null, barChart=null;
 
 function render(){
   renderHeader();
-  const tab=document.querySelector('.tab-btn.active')?.dataset?.tab||'home';
+  const activeTab=document.querySelector('.tab-btn.active');
+  const tabName=activeTab?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1]||'home';
   renderHome();
-  renderHistory();
-  renderBudget();
-  renderSettings();
-  renderShare();
+  if(tabName==="history") renderHistory();
+  if(tabName==="budget") renderBudget();
+  if(tabName==="settings") renderSettings();
+  if(tabName==="share") renderShare();
 }
 
 function renderHeader(){
@@ -698,6 +699,7 @@ function renderAI(){
 }
 
 function renderSettings(){
+  document.getElementById("geminiKeyInput").value=state.settings.geminiKey||"";
   document.getElementById("userNameInput").value=state.settings.userName||"남편";
 
   // cards
@@ -831,7 +833,9 @@ function addEntries(list){
 }
 function deleteEntry(id){
   state.entries=state.entries.filter(e=>e.id!==id);
-  save("entries"); render();
+  save("entries");
+  deleteFromSheets(id);
+  render();
   showToast("삭제됐어요",false);
 }
 
@@ -872,13 +876,15 @@ function renderEditCats(){
   const avail=editType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:state.categories.filter(c=>c.name!=="수입");
   document.getElementById("editCatChips").innerHTML=avail.map(c=>{
     const sel=editCat===c.name;
-    return `<button class="chip" onclick="editCat='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.icon} ${c.name}</button>`;
+    return `<button class="chip" onclick="selectEditCat('${c.name}')" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.icon} ${c.name}</button>`;
   }).join("");
   document.getElementById("editCardChips").innerHTML=state.cards.map(c=>{
     const sel=editCard===c.name;
-    return `<button class="chip" onclick="editCard='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.name}</button>`;
+    return `<button class="chip" onclick="selectEditCard('${c.name}')" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.name}</button>`;
   }).join("");
 }
+function selectEditCat(name){ editCat=name; renderEditCats(); }
+function selectEditCard(name){ editCard=name; renderEditCats(); }
 
 function submitEdit(){
   const amount=Number(document.getElementById("editAmount").value);
@@ -932,6 +938,7 @@ function setBudget(key,val){ state.budgets[key]=Number(val)||0; save("budgets");
 // SETTINGS ACTIONS
 // ═══════════════════════════════════════════
 function saveApiSettings(){
+  state.settings.geminiKey=document.getElementById("geminiKeyInput").value.trim();
   state.settings.userName=document.getElementById("userNameInput").value.trim()||"남편";
   save("settings"); showToast("저장됐어요 ✅");
 }
