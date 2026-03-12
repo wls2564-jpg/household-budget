@@ -187,7 +187,6 @@
     <button class="tab-btn active" onclick="showTab('home',this)">🏠<span class="tab-label">홈</span></button>
     <button class="tab-btn" onclick="showTab('history',this)">📋<span class="tab-label">내역</span></button>
     <button class="tab-btn" onclick="showTab('budget',this)">💰<span class="tab-label">예산</span></button>
-    <button class="tab-btn" onclick="showTab('ai',this)">✨<span class="tab-label">AI</span></button>
     <button class="tab-btn" onclick="showTab('share',this)">🤝<span class="tab-label">공유</span></button>
     <button class="tab-btn" onclick="showTab('settings',this)">⚙️<span class="tab-label">설정</span></button>
   </div>
@@ -202,14 +201,6 @@
       <div class="chart-legend" id="chartLegend"></div>
     </div>
     <div id="noChartMsg" style="display:none;text-align:center;padding:24px 0;color:var(--dim);font-size:13px;">아직 지출 내역이 없어요</div>
-  </div>
-  <div class="ai-box">
-    <div class="ai-badge">✨ AI 자연어 입력</div>
-    <div class="ai-hint">"마트 35000 신한, 카페 아아 4500" 형태로 입력</div>
-    <div class="ai-row">
-      <input class="ai-input" id="nlInput" placeholder="자연어로 여러 건 한 번에..." onkeydown="if(event.key==='Enter')handleNL()">
-      <button class="ai-submit" id="nlBtn" onclick="handleNL()">추가</button>
-    </div>
   </div>
   <div id="homeEntries"></div>
 </div>
@@ -241,26 +232,6 @@
     <div id="overallPct" style="font-size:11px;color:var(--mid);text-align:right;margin-top:4px;"></div>
   </div>
   <div id="budgetList"></div>
-</div>
-
-<!-- AI TAB -->
-<div id="tab-ai" class="tab-content">
-  <div class="ai-box" style="margin-bottom:12px;">
-    <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px;">✨ AI 지출 분석</div>
-    <div style="font-size:11px;color:#636366;margin-bottom:16px;" id="aiMonthLabel"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;" id="aiSummaryCards"></div>
-    <button onclick="handleAnalysis()" id="analysisBtn" style="width:100%;background:linear-gradient(135deg,#30D158,#0A84FF);border-radius:14px;padding:13px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;">AI 분석 시작 ✨</button>
-  </div>
-  <div class="card">
-    <div class="card-title">📂 기존 가계부 가져오기</div>
-    <div style="font-size:11px;color:var(--dim);margin-bottom:10px;">엑셀/메모 내용을 붙여넣으면 AI가 파싱 후 자동 등록</div>
-    <textarea id="uploadText" rows="5" placeholder="날짜, 항목, 금액이 포함된 텍스트를 붙여넣으세요..." style="width:100%;background:#F2F2F7;border:none;border-radius:12px;padding:10px 12px;font-size:12px;resize:vertical;outline:none;font-family:inherit;"></textarea>
-    <button onclick="handleUpload()" id="uploadBtn" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;margin-top:8px;">AI로 가져오기</button>
-  </div>
-  <div class="card">
-    <div class="card-title">월별 지출/수입 추이</div>
-    <canvas id="barChart" height="160"></canvas>
-  </div>
 </div>
 
 <!-- SHARE TAB -->
@@ -304,11 +275,7 @@
 <!-- SETTINGS TAB -->
 <div id="tab-settings" class="tab-content">
   <div class="card">
-    <div class="card-title">🤖 Gemini API 키</div>
-    <div class="form-label">API 키 (무료)</div>
-    <input class="form-input" id="geminiKeyInput" placeholder="AIza..." type="password">
-    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">→ Google AI Studio에서 무료 발급</a>
-    <div class="form-label" style="margin-top:10px;">내 이름</div>
+    <div class="card-title">👤 내 이름</div>
     <input class="form-input" id="userNameInput" placeholder="남편">
     <button onclick="saveApiSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:6px;">저장</button>
   </div>
@@ -385,6 +352,35 @@
   </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="overlay" id="editModal">
+  <div class="overlay-bg" onclick="closeModal('editModal')"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">내역 수정</div>
+      <button class="sheet-close" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="type-row">
+      <button class="type-btn" id="editTypeExp" onclick="setEditType('지출')" style="background:var(--dark);color:#fff;">📤 지출</button>
+      <button class="type-btn" id="editTypeInc" onclick="setEditType('수입')" style="background:#F2F2F7;color:var(--mid);">📥 수입</button>
+    </div>
+    <div class="form-label">카테고리</div>
+    <div class="chip-row" id="editCatChips"></div>
+    <div class="form-label">금액</div>
+    <input class="form-input big" id="editAmount" type="number" placeholder="0">
+    <div class="form-label">메모</div>
+    <input class="form-input" id="editNote" placeholder="어디서 썼나요?">
+    <div class="form-label">날짜</div>
+    <input class="form-input" id="editDate" type="date">
+    <div id="editCardSection">
+      <div class="form-label">카드</div>
+      <div class="chip-row" id="editCardChips"></div>
+    </div>
+    <button onclick="submitEdit()" style="width:100%;background:var(--blue);border-radius:14px;padding:14px;color:#fff;font-weight:800;font-size:15px;border:none;cursor:pointer;margin-top:4px;">수정 완료</button>
+  </div>
+</div>
+
 <!-- CARD PICK MODAL -->
 <div class="overlay" id="cardPickModal">
   <div class="overlay-bg" onclick="closeModal('cardPickModal')"></div>
@@ -397,19 +393,6 @@
     <div style="font-size:13px;color:var(--mid);margin-bottom:16px;" id="cardPickMsg"></div>
     <div id="cardPickList"></div>
     <button onclick="confirmCardPick(null)" style="width:100%;background:#F2F2F7;border-radius:14px;padding:12px;color:var(--mid);font-weight:600;font-size:13px;border:none;cursor:pointer;margin-top:4px;">카드 없이 추가</button>
-  </div>
-</div>
-
-<!-- AI RESULT MODAL -->
-<div class="overlay" id="aiResultModal">
-  <div class="overlay-bg" onclick="closeModal('aiResultModal')"></div>
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title">✨ AI 분석 결과</div>
-      <button class="sheet-close" onclick="closeModal('aiResultModal')">✕</button>
-    </div>
-    <div id="aiResultText" style="font-size:14px;line-height:1.85;color:var(--dark);white-space:pre-line;"></div>
   </div>
 </div>
 
@@ -527,7 +510,6 @@ function render(){
   renderHome();
   renderHistory();
   renderBudget();
-  renderAI();
   renderSettings();
   renderShare();
 }
@@ -596,7 +578,10 @@ function entryRowHTML(e){
     </div>
     <div class="entry-amount">
       <div class="amount" style="color:${e.type==="수입"?"var(--green)":"var(--red)"}">${e.type==="수입"?"+":"-"}${Number(e.amount).toLocaleString()}</div>
-      <button class="del-btn" data-del="${e.id}">삭제</button>
+      <div style="display:none;gap:4px;margin-top:4px;" class="entry-btns">
+        <button class="del-btn" style="display:inline-block;" data-edit="${e.id}">✏️수정</button>
+        <button class="del-btn" style="display:inline-block;" data-del="${e.id}">삭제</button>
+      </div>
     </div>
   </div>`;
 }
@@ -604,10 +589,19 @@ function entryRowHTML(e){
 function attachEntryEvents(){
   document.querySelectorAll(".entry-row").forEach(row=>{
     row.addEventListener("click",function(e){
-      if(e.target.dataset.del) return;
-      this.classList.toggle("open");
+      if(e.target.dataset.del||e.target.dataset.edit) return;
+      const btns=this.querySelector(".entry-btns");
+      const isOpen=btns.style.display==="flex";
+      // 다른 열려있는 것 닫기
+      document.querySelectorAll(".entry-btns").forEach(b=>b.style.display="none");
+      btns.style.display=isOpen?"none":"flex";
     });
-    const delBtn=row.querySelector(".del-btn");
+    const editBtn=row.querySelector("[data-edit]");
+    if(editBtn) editBtn.addEventListener("click",function(e){
+      e.stopPropagation();
+      openEditModal(this.dataset.edit);
+    });
+    const delBtn=row.querySelector("[data-del]");
     if(delBtn) delBtn.addEventListener("click",function(e){
       e.stopPropagation();
       deleteEntry(this.dataset.del);
@@ -704,7 +698,6 @@ function renderAI(){
 }
 
 function renderSettings(){
-  document.getElementById("geminiKeyInput").value=state.settings.geminiKey||"";
   document.getElementById("userNameInput").value=state.settings.userName||"남편";
 
   // cards
@@ -763,7 +756,6 @@ function showTab(name, btn){
   btn.classList.add("active");
   if(name==="history") renderHistory();
   if(name==="budget") renderBudget();
-  if(name==="ai") renderAI();
   if(name==="settings") renderSettings();
   if(name==="share") renderShare();
 }
@@ -844,103 +836,83 @@ function deleteEntry(id){
 }
 
 // ═══════════════════════════════════════════
-// AI NATURAL LANGUAGE
+// EDIT ENTRY
 // ═══════════════════════════════════════════
-async function handleNL(){
-  const input=document.getElementById("nlInput").value.trim();
-  if(!input) return;
-  if(!state.settings.geminiKey){ showToast("설정에서 Gemini API 키를 입력해주세요",false); return; }
-  const btn=document.getElementById("nlBtn");
-  btn.textContent="⏳"; btn.disabled=true;
-  try {
-    const catList=state.categories.map(c=>c.name).join(", ");
-    const cardList=state.cards.map(c=>c.name).join(", ");
-    const res=await callGemini(`오늘: ${today()}. 카테고리목록: ${catList}. 카드목록: ${cardList}.
-입력: "${input}"
-JSON배열만 출력(마크다운 없이):
-[{"date":"YYYY-MM-DD","category":"카테고리","amount":숫자,"type":"지출 또는 수입","note":"메모","card":"카드명 또는 null"}]`);
-    const parsed=JSON.parse(res.replace(/```json|```/g,"").trim());
-    const noCard=parsed.filter(e=>e.type==="지출"&&(!e.card||e.card==="null"||e.card===""));
-    if(noCard.length){
-      state.pendingEntries=parsed;
-      openCardPick(noCard.length);
-    } else {
-      addEntries(parsed.map(e=>({...e,id:uid(),addedBy:state.settings.userName})));
-      document.getElementById("nlInput").value="";
-      showToast(`${parsed.length}건 추가됐어요 ✅`);
-    }
-  } catch(err){ showToast("파싱 실패. 다시 시도해주세요",false); }
-  btn.textContent="추가"; btn.disabled=false;
+let editingId = null;
+let editType = "지출";
+let editCat = "";
+let editCard = "";
+
+function openEditModal(id){
+  const e=state.entries.find(x=>x.id===id);
+  if(!e) return;
+  editingId=id;
+  editType=e.type;
+  editCat=e.category;
+  editCard=e.card||"";
+  document.getElementById("editAmount").value=e.amount;
+  document.getElementById("editNote").value=e.note||"";
+  document.getElementById("editDate").value=e.date;
+  setEditType(e.type);
+  document.getElementById("editCardSection").style.display=e.type==="지출"?"block":"none";
+  document.getElementById("editModal").classList.add("open");
 }
 
-function openCardPick(count){
-  document.getElementById("cardPickMsg").textContent=`${count}건의 지출에 카드 정보가 없어요. 어떤 카드로 결제하셨나요?`;
-  document.getElementById("cardPickList").innerHTML=state.cards.map(c=>`
-    <div class="card-pick-item" onclick="confirmCardPick('${c.name}')" style="border-color:${c.color}22;">
-      <div style="width:10px;height:10px;border-radius:5px;background:${c.color};flex-shrink:0;"></div>
-      <span style="font-size:15px;font-weight:700;">${c.name}</span>
-      ${c.isDefault?'<span class="badge-default">기본</span>':""}
-    </div>`).join("");
-  document.getElementById("cardPickModal").classList.add("open");
-}
-function confirmCardPick(cardName){
-  if(!state.pendingEntries) return;
-  const filled=state.pendingEntries.map(e=>({
-    ...e, id:uid(), addedBy:state.settings.userName,
-    card:(e.type==="지출"&&(!e.card||e.card==="null"||e.card===""))?cardName||"":e.card
-  }));
-  addEntries(filled);
-  document.getElementById("nlInput").value="";
-  state.pendingEntries=null;
-  closeModal("cardPickModal");
-  showToast(`${filled.length}건 추가됐어요 ✅`);
+function setEditType(t){
+  editType=t;
+  const exp=document.getElementById("editTypeExp"),inc=document.getElementById("editTypeInc");
+  if(t==="지출"){ exp.style.background="var(--dark)";exp.style.color="#fff";inc.style.background="#F2F2F7";inc.style.color="var(--mid)"; }
+  else { inc.style.background="var(--dark)";inc.style.color="#fff";exp.style.background="#F2F2F7";exp.style.color="var(--mid)"; }
+  editCat=t==="수입"?"수입":(state.categories.find(c=>c.name!=="수입")?.name||"식비");
+  renderEditCats();
+  document.getElementById("editCardSection").style.display=t==="지출"?"block":"none";
 }
 
-// ═══════════════════════════════════════════
-// AI ANALYSIS
-// ═══════════════════════════════════════════
-async function handleAnalysis(){
-  if(!state.settings.geminiKey){ showToast("Gemini API 키 필요",false); return; }
-  const btn=document.getElementById("analysisBtn");
-  btn.textContent="분석 중..."; btn.disabled=true;
-  document.getElementById("aiResultText").textContent="분석 중... ✨";
-  document.getElementById("aiResultModal").classList.add("open");
-  try {
-    const cd=chartData(); const inc=totalInc(),exp=totalExp(),bal=inc-exp;
-    const summary=cd.map(c=>`${c.name}: ${won(c.value)}`).join(", ");
-    const res=await callGemini(`${ymLbl(state.curMonth)} 가계부. 총지출:${won(exp)}, 총수입:${won(inc)}, 잔액:${won(bal)}.
-카테고리: ${summary||"없음"}. 친근하게 분석+절약팁 3가지. 이모지 포함. 한국어. 500자 이내.`);
-    document.getElementById("aiResultText").textContent=res;
-  } catch{ document.getElementById("aiResultText").textContent="분석 오류가 발생했습니다."; }
-  btn.textContent="AI 분석 시작 ✨"; btn.disabled=false;
+function renderEditCats(){
+  const avail=editType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:state.categories.filter(c=>c.name!=="수입");
+  document.getElementById("editCatChips").innerHTML=avail.map(c=>{
+    const sel=editCat===c.name;
+    return `<button class="chip" onclick="editCat='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.icon} ${c.name}</button>`;
+  }).join("");
+  document.getElementById("editCardChips").innerHTML=state.cards.map(c=>{
+    const sel=editCard===c.name;
+    return `<button class="chip" onclick="editCard='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.name}</button>`;
+  }).join("");
 }
 
-async function handleUpload(){
-  const text=document.getElementById("uploadText").value.trim();
-  if(!text||!state.settings.geminiKey){ showToast("API 키와 데이터를 확인해주세요",false); return; }
-  const btn=document.getElementById("uploadBtn");
-  btn.textContent="분석 중..."; btn.disabled=true;
-  try {
-    const catList=state.categories.map(c=>c.name).join(", ");
-    const res=await callGemini(`기존 가계부 데이터 파싱→JSON배열. 카테고리는 반드시: ${catList}
-형식(다른텍스트없이): [{"date":"YYYY-MM-DD","category":"카테고리","amount":숫자,"type":"지출 또는 수입","note":"메모","card":null}]
-데이터:\n${text.slice(0,3000)}`);
-    const parsed=JSON.parse(res.replace(/```json|```/g,"").trim());
-    addEntries(parsed.map(e=>({...e,id:uid(),addedBy:"가져오기"})));
-    showToast(`${parsed.length}건 가져왔어요 ✅`);
-    document.getElementById("uploadText").value="";
-  } catch{ showToast("파싱 실패. 데이터 형식 확인 필요",false); }
-  btn.textContent="AI로 가져오기"; btn.disabled=false;
-}
-
-async function callGemini(prompt){
-  const GEMINI_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-  const res=await fetch(`${GEMINI_URL}?key=${state.settings.geminiKey}`,{
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ contents:[{role:"user",parts:[{text:prompt}]}], generationConfig:{temperature:0.1,maxOutputTokens:2048} })
+function submitEdit(){
+  const amount=Number(document.getElementById("editAmount").value);
+  if(!amount||!editingId) return;
+  state.entries=state.entries.map(e=>{
+    if(e.id!==editingId) return e;
+    return {...e,
+      type:editType, category:editCat, amount,
+      note:document.getElementById("editNote").value,
+      date:document.getElementById("editDate").value,
+      card:editType==="지출"?editCard:""
+    };
   });
-  const d=await res.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text||"";
+  save("entries");
+  // 시트에서도 삭제 후 재추가
+  const updated=state.entries.find(e=>e.id===editingId);
+  deleteFromSheets(editingId);
+  setTimeout(()=>pushToSheets([updated]),500);
+  closeModal("editModal");
+  render();
+  showToast("수정됐어요 ✅");
+}
+
+async function deleteFromSheets(id){
+  if(!state.scriptUrl) return;
+  try {
+    await fetch(state.scriptUrl,{
+      method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"delete",id})
+    });
+    pushedIds.delete(id);
+    savePushedIds();
+  } catch{}
 }
 
 // ═══════════════════════════════════════════
@@ -960,7 +932,6 @@ function setBudget(key,val){ state.budgets[key]=Number(val)||0; save("budgets");
 // SETTINGS ACTIONS
 // ═══════════════════════════════════════════
 function saveApiSettings(){
-  state.settings.geminiKey=document.getElementById("geminiKeyInput").value.trim();
   state.settings.userName=document.getElementById("userNameInput").value.trim()||"남편";
   save("settings"); showToast("저장됐어요 ✅");
 }
