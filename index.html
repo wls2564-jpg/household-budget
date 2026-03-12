@@ -451,7 +451,7 @@ let state = {
   budgetEditing: false,
   pendingEntries: null,
   syncStatus:"idle",
-  scriptUrl:"https://script.google.com/macros/s/AKfycbwB8H4mu9c_7sFQBw6aZr13QyxbaSWJetguQUuSF_MDeEcDSS4uGs9fVTlkoHiMdmoz/exec",
+  scriptUrl: LS.get("mm_script_url","https://script.google.com/macros/s/AKfycbwB8H4mu9c_7sFQBw6aZr13QyxbaSWJetguQUuSF_MDeEcDSS4uGs9fVTlkoHiMdmoz/exec"),
 };
 
 function save(key) {
@@ -968,6 +968,7 @@ function saveShareSettings(){
   state.settings.userName=document.getElementById("shareUserName").value.trim()||"남편";
   state.settings.partnerName=document.getElementById("sharePartnerName").value.trim()||"아내";
   state.scriptUrl=document.getElementById("shareSheetId").value.trim();
+  LS.set("mm_script_url", state.scriptUrl);
   save("settings"); showToast("저장됐어요 ✅");
   startSync();
 }
@@ -1029,33 +1030,55 @@ function download(content,filename,type){
 // APPS SCRIPT SYNC
 // ═══════════════════════════════════════════
 let syncTimer=null;
+// 시트에 이미 push된 id 추적 (중복 방지)
+const pushedIds = new Set(LS.get("mm_pushed_ids", []));
+function savePushedIds(){ LS.set("mm_pushed_ids", [...pushedIds]); }
+
 function startSync(){
   if(syncTimer) clearInterval(syncTimer);
   pullFromScript();
   syncTimer=setInterval(pullFromScript,30000);
 }
+
 async function pullFromScript(){
   if(!state.scriptUrl) return;
   state.syncStatus="syncing"; renderShare();
   try {
-    const res=await fetch(state.scriptUrl);
+    const res=await fetch(state.scriptUrl+"?t="+Date.now());
     const d=await res.json();
     if(!d.data){ state.syncStatus="err"; renderShare(); return; }
-    const ids=new Set(state.entries.map(e=>e.id));
-    const news=d.data.filter(r=>r.id&&!ids.has(r.id)).map(r=>({...r,amount:Number(r.amount)||0}));
-    if(news.length){ state.entries=[...state.entries,...news]; save("entries"); render(); }
+    // 시트에서 가져온 데이터를 기준으로 로컬과 머지 (id 기반 중복 제거)
+    const remoteMap={};
+    d.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
+    const localMap={};
+    state.entries.forEach(e=>{ localMap[e.id]=e; });
+    // 머지: 로컬 + 시트에만 있는 것
+    const merged=Object.values({...remoteMap,...localMap});
+    // 시트에 있는 id는 pushedIds에 추가 (이미 시트에 있으니 다시 push 불필요)
+    d.data.forEach(r=>{ if(r.id) pushedIds.add(r.id); });
+    savePushedIds();
+    state.entries=merged;
+    save("entries");
+    render();
     state.syncStatus="ok"; renderShare();
   } catch{ state.syncStatus="err"; renderShare(); }
 }
+
 async function pushToSheets(list){
   if(!state.scriptUrl) return;
+  // 이미 push된 것은 제외
+  const toSend=list.filter(e=>!pushedIds.has(e.id));
+  if(!toSend.length) return;
   try {
     await fetch(state.scriptUrl,{
       method:"POST",
       mode:"no-cors",
       headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"add", entries:list})
+      body:JSON.stringify({action:"add", entries:toSend})
     });
+    // push 성공으로 간주하고 id 기록
+    toSend.forEach(e=>pushedIds.add(e.id));
+    savePushedIds();
   } catch{}
 }
 
