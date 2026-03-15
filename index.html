@@ -31,7 +31,7 @@
   .tabs { display:flex; border-top:1px solid rgba(255,255,255,0.06); }
   .tab-btn { flex:1; padding:8px 0 6px; color:var(--dim); font-size:16px; display:flex; flex-direction:column; align-items:center; gap:1px; border-bottom:2px solid transparent; transition:all 0.15s; }
   .tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
-  .tab-btn span.tab-label { font-size:9px; font-weight:600; }
+  .tab-btn span.tab-label { font-size:8px; font-weight:600; }
 
   /* TAB CONTENT */
   .tab-content { display:none; padding:12px 14px; }
@@ -186,7 +186,8 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('home',this)">🏠<span class="tab-label">홈</span></button>
     <button class="tab-btn" onclick="showTab('history',this)">📋<span class="tab-label">내역</span></button>
-    <button class="tab-btn" onclick="showTab('budget',this)">💰<span class="tab-label">예산</span></button>
+    <button class="tab-btn" onclick="showTab('stats',this)">📊<span class="tab-label">통계</span></button>
+    <button class="tab-btn" onclick="showTab('recurring',this)">🔄<span class="tab-label">고정</span></button>
     <button class="tab-btn" onclick="showTab('share',this)">🤝<span class="tab-label">공유</span></button>
     <button class="tab-btn" onclick="showTab('settings',this)">⚙️<span class="tab-label">설정</span></button>
   </div>
@@ -234,7 +235,92 @@
   <div id="budgetList"></div>
 </div>
 
-<!-- SHARE TAB -->
+<!-- STATS TAB -->
+<div id="tab-stats" class="tab-content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-size:15px;font-weight:800;">📊 통계</div>
+    <div style="display:flex;gap:6px;">
+      <button id="statsViewMonth" onclick="setStatsView('month')" style="background:var(--dark);color:#fff;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;">월별</button>
+      <button id="statsViewYear" onclick="setStatsView('year')" style="background:var(--line);color:var(--mid);border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;">연간</button>
+    </div>
+  </div>
+
+  <!-- 월별 뷰 -->
+  <div id="statsMonthView">
+    <div class="card">
+      <div class="card-title" id="statsMonthTitle"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">수입</div>
+          <div id="statsMonthInc" style="font-size:13px;font-weight:800;color:var(--green);"></div>
+        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">지출</div>
+          <div id="statsMonthExp" style="font-size:13px;font-weight:800;color:var(--red);"></div>
+        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">잔액</div>
+          <div id="statsMonthBal" style="font-size:13px;font-weight:800;color:var(--blue);"></div>
+        </div>
+      </div>
+      <div class="card-title">카테고리별 지출</div>
+      <div id="statsCatList"></div>
+    </div>
+  </div>
+
+  <!-- 연간 뷰 -->
+  <div id="statsYearView" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button onclick="changeStatsYear(-1)" style="font-size:22px;color:var(--dim);background:none;border:none;cursor:pointer;">‹</button>
+      <div id="statsYearTitle" style="font-size:16px;font-weight:800;"></div>
+      <button onclick="changeStatsYear(1)" style="font-size:22px;color:var(--dim);background:none;border:none;cursor:pointer;">›</button>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 수입</div>
+          <div id="statsYearInc" style="font-size:12px;font-weight:800;color:var(--green);"></div>
+        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 지출</div>
+          <div id="statsYearExp" style="font-size:12px;font-weight:800;color:var(--red);"></div>
+        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 잔액</div>
+          <div id="statsYearBal" style="font-size:12px;font-weight:800;color:var(--blue);"></div>
+        </div>
+      </div>
+      <div class="card-title">월별 수입/지출</div>
+      <div style="height:180px;"><canvas id="statsBarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">월별 상세</div>
+      <div id="statsYearMonthList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RECURRING TAB -->
+<div id="tab-recurring" class="tab-content">
+  <div style="font-size:15px;font-weight:800;margin-bottom:14px;">🔄 고정지출 관리</div>
+  <div class="card">
+    <div class="card-title">등록된 고정지출</div>
+    <div id="recurringTabList"></div>
+    <div id="recurringEmpty" style="display:none;text-align:center;padding:24px 0;color:var(--dim);font-size:13px;">등록된 고정지출이 없어요</div>
+  </div>
+  <div class="card">
+    <div class="card-title">➕ 고정지출 추가</div>
+    <div class="form-label">이름</div>
+    <input class="form-input" id="recTabName" placeholder="월세, 보험료, 넷플릭스...">
+    <div class="form-label">금액</div>
+    <input class="form-input" type="number" id="recTabAmount" placeholder="금액">
+    <div class="form-label">카테고리</div>
+    <select class="form-input" id="recTabCat"></select>
+    <div class="form-label">매월 며칠</div>
+    <input class="form-input" type="number" id="recTabDay" placeholder="1~31" min="1" max="31" value="1">
+    <button onclick="addRecurringTab()" style="width:100%;background:var(--green);border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:4px;">추가하기</button>
+  </div>
+</div>
 <div id="tab-share" class="tab-content">
   <div class="card">
     <div class="card-title">🤝 와이프와 공유</div>
@@ -755,6 +841,8 @@ function showTab(name, btn){
   if(name==="budget") renderBudget();
   if(name==="settings") renderSettings();
   if(name==="share") renderShare();
+  if(name==="stats") renderStats();
+  if(name==="recurring") renderRecurringTab();
 }
 function setTypeFilter(v,btn){
   state.typeFilter=v;
@@ -971,12 +1059,14 @@ function addRecurring(){
   const amount=Number(document.getElementById("newRecAmount").value);
   const category=document.getElementById("newRecCat").value;
   const dayOfMonth=Number(document.getElementById("newRecDay").value)||1;
-  if(!name||!amount) return;
+  if(!name){ showToast("이름을 입력해주세요",false); return; }
+  if(!amount){ showToast("금액을 입력해주세요",false); return; }
+  if(!category){ showToast("카테고리를 선택해주세요",false); return; }
   state.recurring.push({id:uid(),name,category,amount,dayOfMonth,card:"",active:true});
   save("recurring");
   document.getElementById("newRecName").value="";
   document.getElementById("newRecAmount").value="";
-  renderSettings(); showToast("정기지출 추가됨");
+  renderSettings(); showToast("정기지출 추가됨 ✅");
 }
 function toggleRecurring(id){ state.recurring=state.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); renderSettings(); }
 function removeRecurring(id){ state.recurring=state.recurring.filter(r=>r.id!==id); save("recurring"); renderSettings(); }
@@ -1015,25 +1105,44 @@ function startSync(){
 async function pullFromScript(){
   if(!state.scriptUrl) return;
   state.syncStatus="syncing"; renderShare();
+
+  // CORS 우회: JSONP 방식 사용
   try {
-    const res=await fetch(state.scriptUrl+"?t="+Date.now());
-    const d=await res.json();
-    if(!d.data){ state.syncStatus="err"; renderShare(); return; }
-    // 시트에서 가져온 데이터를 기준으로 로컬과 머지 (id 기반 중복 제거)
+    const data = await new Promise((resolve, reject) => {
+      const callbackName = "gsCallback_" + Date.now();
+      const script = document.createElement("script");
+      const timeout = setTimeout(() => {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        reject(new Error("timeout"));
+      }, 10000);
+      window[callbackName] = function(d) {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        document.body.removeChild(script);
+        resolve(d);
+      };
+      script.src = state.scriptUrl + "?callback=" + callbackName + "&t=" + Date.now();
+      script.onerror = () => { clearTimeout(timeout); reject(new Error("script error")); };
+      document.body.appendChild(script);
+    });
+
+    if(!data || !data.data){ state.syncStatus="err"; renderShare(); return; }
     const remoteMap={};
-    d.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
+    data.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
     const localMap={};
     state.entries.forEach(e=>{ localMap[e.id]=e; });
-    // 머지: 로컬 + 시트에만 있는 것
     const merged=Object.values({...remoteMap,...localMap});
-    // 시트에 있는 id는 pushedIds에 추가 (이미 시트에 있으니 다시 push 불필요)
-    d.data.forEach(r=>{ if(r.id) pushedIds.add(r.id); });
+    data.data.forEach(r=>{ if(r.id) pushedIds.add(r.id); });
     savePushedIds();
     state.entries=merged;
     save("entries");
     render();
     state.syncStatus="ok"; renderShare();
-  } catch{ state.syncStatus="err"; renderShare(); }
+  } catch(err){
+    console.error("Sync error:", err);
+    state.syncStatus="err"; renderShare();
+  }
 }
 
 async function pushToSheets(list){
@@ -1055,7 +1164,173 @@ async function pushToSheets(list){
 }
 
 // ═══════════════════════════════════════════
-// AUTO RECURRING
+// STATS TAB
+// ═══════════════════════════════════════════
+let statsView = "month";
+let statsYear = new Date().getFullYear();
+
+function setStatsView(v){
+  statsView = v;
+  document.getElementById("statsViewMonth").style.background = v==="month"?"var(--dark)":"var(--line)";
+  document.getElementById("statsViewMonth").style.color = v==="month"?"#fff":"var(--mid)";
+  document.getElementById("statsViewYear").style.background = v==="year"?"var(--dark)":"var(--line)";
+  document.getElementById("statsViewYear").style.color = v==="year"?"#fff":"var(--mid)";
+  document.getElementById("statsMonthView").style.display = v==="month"?"block":"none";
+  document.getElementById("statsYearView").style.display = v==="year"?"block":"none";
+  renderStats();
+}
+
+function changeStatsYear(dir){
+  statsYear += dir;
+  renderStats();
+}
+
+function renderStats(){
+  if(statsView==="month") renderStatsMonth();
+  else renderStatsYear();
+}
+
+function renderStatsMonth(){
+  const inc=totalInc(), exp=totalExp(), bal=inc-exp;
+  document.getElementById("statsMonthTitle").textContent = ymLbl(state.curMonth) + " 요약";
+  document.getElementById("statsMonthInc").textContent = won(inc);
+  document.getElementById("statsMonthExp").textContent = won(exp);
+  const balEl=document.getElementById("statsMonthBal");
+  balEl.textContent = won(Math.abs(bal));
+  balEl.style.color = bal>=0?"var(--blue)":"var(--red)";
+
+  // 카테고리별 지출 목록
+  const ct = catTotals();
+  const sorted = Object.entries(ct).sort((a,b)=>b[1]-a[1]);
+  const total = totalExp();
+  document.getElementById("statsCatList").innerHTML = sorted.length===0
+    ? `<div style="text-align:center;padding:20px;color:var(--dim);font-size:13px;">지출 내역이 없어요</div>`
+    : sorted.map(([name,amt])=>{
+        const cat=getCat(name);
+        const pct=total>0?Math.round(amt/total*100):0;
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:13px;">${cat.icon} ${name}</span>
+            <span style="font-size:13px;font-weight:700;">${won(amt)} <span style="color:var(--dim);font-weight:400;">${pct}%</span></span>
+          </div>
+          <div style="background:var(--f2);border-radius:4px;height:6px;">
+            <div style="width:${pct}%;height:100%;border-radius:4px;background:${cat.color};transition:width 0.4s;"></div>
+          </div>
+        </div>`;
+      }).join("");
+}
+
+let statsBarChart=null;
+function renderStatsYear(){
+  document.getElementById("statsYearTitle").textContent = statsYear+"년";
+  const months=Array.from({length:12},(_,i)=>`${statsYear}-${String(i+1).padStart(2,"0")}`);
+  const data=months.map(m=>({
+    label:Number(m.split("-")[1])+"월",
+    inc:state.entries.filter(e=>ym(e.date)===m&&e.type==="수입").reduce((s,e)=>s+Number(e.amount),0),
+    exp:state.entries.filter(e=>ym(e.date)===m&&e.type==="지출").reduce((s,e)=>s+Number(e.amount),0),
+  }));
+  const yearInc=data.reduce((s,d)=>s+d.inc,0);
+  const yearExp=data.reduce((s,d)=>s+d.exp,0);
+  const yearBal=yearInc-yearExp;
+  document.getElementById("statsYearInc").textContent=won(yearInc);
+  document.getElementById("statsYearExp").textContent=won(yearExp);
+  const yb=document.getElementById("statsYearBal");
+  yb.textContent=won(Math.abs(yearBal));
+  yb.style.color=yearBal>=0?"var(--blue)":"var(--red)";
+
+  // 바 차트
+  const ctx=document.getElementById("statsBarChart").getContext("2d");
+  if(statsBarChart) statsBarChart.destroy();
+  statsBarChart=new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:data.map(d=>d.label),
+      datasets:[
+        {label:"수입",data:data.map(d=>d.inc),backgroundColor:"#30D158",borderRadius:4,maxBarThickness:16},
+        {label:"지출",data:data.map(d=>d.exp),backgroundColor:"#FF453A",borderRadius:4,maxBarThickness:16},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},color:"#636366"}}},
+      scales:{x:{grid:{display:false},ticks:{color:"#636366",font:{size:9}}},y:{display:false}},
+    }
+  });
+
+  // 월별 상세 목록
+  document.getElementById("statsYearMonthList").innerHTML=data.map((d,i)=>{
+    const bal=d.inc-d.exp;
+    const hasData=d.inc>0||d.exp>0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);${!hasData?"opacity:0.35":""}">
+      <span style="font-size:13px;font-weight:600;color:var(--mid);">${d.label}</span>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--dim);">수입 <span style="color:var(--green);font-weight:700;">${won(d.inc)}</span> · 지출 <span style="color:var(--red);font-weight:700;">${won(d.exp)}</span></div>
+        <div style="font-size:12px;font-weight:800;color:${bal>=0?"var(--blue)":"var(--red)"};">${bal>=0?"+":""}${won(bal)}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════
+// RECURRING TAB
+// ═══════════════════════════════════════════
+function renderRecurringTab(){
+  // 카테고리 select 채우기
+  const sel=document.getElementById("recTabCat");
+  sel.innerHTML=state.categories.filter(c=>c.name!=="수입").map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join("");
+
+  const list=state.recurring;
+  const container=document.getElementById("recurringTabList");
+  const empty=document.getElementById("recurringEmpty");
+  if(!list.length){ container.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  const totalAmt=list.filter(r=>r.active).reduce((s,r)=>s+r.amount,0);
+  container.innerHTML=`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;">활성 고정지출 합계 <strong style="color:var(--red);">${won(totalAmt)}/월</strong></div>`
+  + list.map(r=>{
+    const cat=getCat(r.category);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
+      <div style="width:36px;height:36px;border-radius:10px;background:${cat.color}1A;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${cat.icon}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${r.name}</div>
+        <div style="font-size:11px;color:var(--dim);">매월 ${r.dayOfMonth}일 · ${r.category}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:14px;font-weight:800;color:var(--red);">-${Number(r.amount).toLocaleString()}</div>
+        <div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end;">
+          <button onclick="toggleRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:${r.active?"#30D15818":"#F2F2F7"};color:${r.active?"var(--green)":"#8E8E93"};">${r.active?"ON":"OFF"}</button>
+          <button onclick="removeRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:#FF453A1A;color:var(--red);">삭제</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function addRecurringTab(){
+  const name=document.getElementById("recTabName").value.trim();
+  const amount=Number(document.getElementById("recTabAmount").value);
+  const category=document.getElementById("recTabCat").value;
+  const dayOfMonth=Number(document.getElementById("recTabDay").value)||1;
+  if(!name){ showToast("이름을 입력해주세요",false); return; }
+  if(!amount){ showToast("금액을 입력해주세요",false); return; }
+  if(!category){ showToast("카테고리를 선택해주세요",false); return; }
+  state.recurring.push({id:uid(),name,category,amount,dayOfMonth,card:"",active:true});
+  save("recurring");
+  document.getElementById("recTabName").value="";
+  document.getElementById("recTabAmount").value="";
+  document.getElementById("recTabDay").value="1";
+  renderRecurringTab();
+  showToast("고정지출 추가됨 ✅");
+}
+
+function toggleRecurringTab(id){
+  state.recurring=state.recurring.map(r=>r.id===id?{...r,active:!r.active}:r);
+  save("recurring"); renderRecurringTab();
+}
+function removeRecurringTab(id){
+  if(!confirm("삭제할까요?")) return;
+  state.recurring=state.recurring.filter(r=>r.id!==id);
+  save("recurring"); renderRecurringTab();
+}
 // ═══════════════════════════════════════════
 function checkRecurring(){
   const [y,mo]=state.curMonth.split("-");
