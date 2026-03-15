@@ -814,10 +814,15 @@ function addRecurringTab(){
   S.recurring.push({id:uid(),name,category,amount,dayOfMonth:Number(document.getElementById("recTabDay").value)||1,card:"",active:true});
   save("recurring");
   pushRecurring();
+  // 등록 즉시 이번달 내역에 반영
+  LS.set("mm_rec_checked",""); // 오늘 체크 초기화해서 재실행
+  checkRecurring();
   document.getElementById("recTabName").value="";
   document.getElementById("recTabAmount").value="";
   document.getElementById("recTabDay").value="1";
-  renderRecurringTab(); showToast("고정지출 추가됨 ✅");
+  renderRecurringTab();
+  render();
+  showToast("고정지출 추가됨 ✅");
 }
 function toggleRecurringTab(id){ S.recurring=S.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); pushRecurring(); renderRecurringTab(); }
 function removeRecurringTab(id){ if(!confirm("삭제할까요?")) return; S.recurring=S.recurring.filter(r=>r.id!==id); save("recurring"); pushRecurring(); renderRecurringTab(); }
