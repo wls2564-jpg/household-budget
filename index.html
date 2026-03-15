@@ -810,13 +810,14 @@ function addRecurringTab(){
   if(!amount){ showToast("금액을 입력해주세요",false); return; }
   S.recurring.push({id:uid(),name,category,amount,dayOfMonth:Number(document.getElementById("recTabDay").value)||1,card:"",active:true});
   save("recurring");
+  pushRecurring();
   document.getElementById("recTabName").value="";
   document.getElementById("recTabAmount").value="";
   document.getElementById("recTabDay").value="1";
   renderRecurringTab(); showToast("고정지출 추가됨 ✅");
 }
-function toggleRecurringTab(id){ S.recurring=S.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); renderRecurringTab(); }
-function removeRecurringTab(id){ if(!confirm("삭제할까요?")) return; S.recurring=S.recurring.filter(r=>r.id!==id); save("recurring"); renderRecurringTab(); }
+function toggleRecurringTab(id){ S.recurring=S.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); pushRecurring(); renderRecurringTab(); }
+function removeRecurringTab(id){ if(!confirm("삭제할까요?")) return; S.recurring=S.recurring.filter(r=>r.id!==id); save("recurring"); pushRecurring(); renderRecurringTab(); }
 
 // ─── 정기지출 자동등록 ──────────────────────
 function checkRecurring(){
@@ -863,29 +864,66 @@ function startSync(){
   if(syncTimer) clearInterval(syncTimer);
   if(!S.scriptUrl) return;
   pullFromSheet();
-  syncTimer=setInterval(pullFromSheet, 30000);
+  pullRecurring();
+  syncTimer=setInterval(()=>{ pullFromSheet(); pullRecurring(); }, 30000);
 }
 
+// 내역 동기화
 function pullFromSheet(){
   if(!S.scriptUrl) return;
   S.syncStatus="syncing"; renderShare();
-  const cbName="gs_"+Date.now();
-  const script=document.createElement("script");
-  const timer=setTimeout(()=>{ cleanup(); S.syncStatus="err"; renderShare(); }, 10000);
-  function cleanup(){ clearTimeout(timer); delete window[cbName]; script.parentNode?.removeChild(script); }
-  window[cbName]=function(data){
-    cleanup();
+  jsonp(S.scriptUrl+"?action=entries&t="+Date.now(), function(data){
     if(!data?.data){ S.syncStatus="err"; renderShare(); return; }
-    // 시트 기준으로 머지 (시트에 없는 로컬 데이터는 유지)
     const remoteMap={};
     data.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
     const localOnly=S.entries.filter(e=>!remoteMap[e.id]);
     S.entries=[...Object.values(remoteMap),...localOnly];
     save("entries"); render();
     S.syncStatus="ok"; renderShare();
-  };
-  script.onerror=()=>{ cleanup(); S.syncStatus="err"; renderShare(); };
-  script.src=`${S.scriptUrl}?callback=${cbName}&t=${Date.now()}`;
+  }, function(){
+    S.syncStatus="err"; renderShare();
+  });
+}
+
+// 고정지출 동기화 (pull)
+function pullRecurring(){
+  if(!S.scriptUrl) return;
+  jsonp(S.scriptUrl+"?action=recurring&t="+Date.now(), function(data){
+    if(!data?.data) return;
+    // 시트에 데이터 있으면 시트 기준으로 덮어씀
+    if(data.data.length>0){
+      S.recurring=data.data.map(r=>({
+        ...r,
+        amount:Number(r.amount)||0,
+        dayOfMonth:Number(r.dayOfMonth)||1,
+        active:r.active==="true"||r.active===true,
+      }));
+      save("recurring");
+      const tab=document.querySelector('.tab-btn.active')?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1];
+      if(tab==="recurring") renderRecurringTab();
+    }
+  }, function(){});
+}
+
+// 고정지출 동기화 (push) - 변경사항 있을 때마다 호출
+function pushRecurring(){
+  if(!S.scriptUrl) return;
+  fetch(S.scriptUrl,{
+    method:"POST", mode:"no-cors",
+    headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"syncRecurring", list:S.recurring})
+  }).catch(()=>{});
+}
+
+// JSONP 헬퍼
+function jsonp(url, onSuccess, onError){
+  const cbName="gs_"+Date.now();
+  const script=document.createElement("script");
+  const timer=setTimeout(()=>{ cleanup(); onError&&onError(); }, 10000);
+  function cleanup(){ clearTimeout(timer); delete window[cbName]; script.parentNode?.removeChild(script); }
+  window[cbName]=function(data){ cleanup(); onSuccess(data); };
+  script.onerror=()=>{ cleanup(); onError&&onError(); };
+  script.src=url+"&callback="+cbName;
   document.body.appendChild(script);
 }
 
