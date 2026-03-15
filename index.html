@@ -83,8 +83,9 @@ input, select { font-family:inherit; }
 .export-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .export-btn { border-radius:12px; padding:11px; color:#fff; font-weight:700; font-size:13px; border:none; cursor:pointer; }
 .sync-status { display:flex; align-items:center; gap:8px; border-radius:12px; padding:10px 12px; }
-.toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); color:#fff; padding:10px 22px; border-radius:24px; z-index:9999; font-size:14px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); white-space:nowrap; display:none; }
-.toast.show { display:block; }
+.toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); color:#fff; padding:10px 22px; border-radius:24px; z-index:9999; font-size:14px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); white-space:nowrap; display:none; opacity:0; transition:opacity 0.3s; }
+.toast.show { display:block; opacity:1; }
+.toast.fade-out { opacity:0; }
 </style>
 </head>
 <body>
@@ -110,12 +111,12 @@ input, select { font-family:inherit; }
     <div class="summary-item"><div class="s-label">잔액</div><div class="s-val" id="sumBalance" style="color:var(--blue)">0원</div></div>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('home',this)">🏠<span class="tab-label">홈</span></button>
-    <button class="tab-btn" onclick="showTab('history',this)">📋<span class="tab-label">내역</span></button>
-    <button class="tab-btn" onclick="showTab('stats',this)">📊<span class="tab-label">통계</span></button>
-    <button class="tab-btn" onclick="showTab('recurring',this)">🔄<span class="tab-label">고정</span></button>
-    <button class="tab-btn" onclick="showTab('share',this)">🤝<span class="tab-label">공유</span></button>
-    <button class="tab-btn" onclick="showTab('settings',this)">⚙️<span class="tab-label">설정</span></button>
+    <button class="tab-btn active" data-tab="home" onclick="showTab('home',this)">🏠<span class="tab-label">홈</span></button>
+    <button class="tab-btn" data-tab="history" onclick="showTab('history',this)">📋<span class="tab-label">내역</span></button>
+    <button class="tab-btn" data-tab="stats" onclick="showTab('stats',this)">📊<span class="tab-label">통계</span></button>
+    <button class="tab-btn" data-tab="recurring" onclick="showTab('recurring',this)">🔄<span class="tab-label">고정</span></button>
+    <button class="tab-btn" data-tab="share" onclick="showTab('share',this)">🤝<span class="tab-label">공유</span></button>
+    <button class="tab-btn" data-tab="settings" onclick="showTab('settings',this)">⚙️<span class="tab-label">설정</span></button>
   </div>
 </div>
 
@@ -330,8 +331,29 @@ input, select { font-family:inherit; }
   </div>
 </div>
 
+<!-- 고정지출 수정 모달 -->
+<div class="overlay" id="editRecModal">
+  <div class="overlay-bg" onclick="closeModal('editRecModal')"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">고정지출 수정</div>
+      <button class="sheet-close" onclick="closeModal('editRecModal')">✕</button>
+    </div>
+    <div class="form-label">이름</div>
+    <input class="form-input" id="editRecName" placeholder="항목명">
+    <div class="form-label">금액</div>
+    <input class="form-input big" type="number" id="editRecAmount" placeholder="금액">
+    <div class="form-label">카테고리</div>
+    <select class="form-input" id="editRecCat"></select>
+    <div class="form-label">매월 며칠</div>
+    <input class="form-input" type="number" id="editRecDay" min="1" max="31">
+    <button onclick="submitEditRecurring()" style="width:100%;background:var(--blue);border-radius:14px;padding:14px;color:#fff;font-weight:800;font-size:15px;border:none;cursor:pointer;margin-top:4px;">수정 완료</button>
+  </div>
+</div>
+
 <script>
-// ─── 유틸 (가장 먼저 정의) ──────────────────
+// ─── 유틸 ───────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
 function today(){
@@ -353,7 +375,6 @@ function normalizeDate(d){
   var s=String(d).trim();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   if(s.includes("T")) return s.slice(0,10);
-  // 숫자면 구글 시트 날짜 직렬번호 - 무시하고 today 반환
   if(/^\d+(\.\d+)?$/.test(s)) return today();
   var dt=new Date(d);
   if(!isNaN(dt.getTime())){
@@ -367,11 +388,18 @@ function ymLbl(s){ var p=s.split("-"); return p[0]+"년 "+Number(p[1])+"월"; }
 function getCat(name){ return S.categories.find(function(c){return c.name===name;})||{icon:"💸",color:"#9CA3AF",name:name}; }
 function getCard(name){ return S.cards.find(function(c){return c.name===name;}); }
 
+// [FIX] toast 타이머 중복 방지
+var toastTimer=null;
 function showToast(msg,ok){
   if(ok===undefined) ok=true;
   var t=document.getElementById("toast");
+  if(toastTimer){ clearTimeout(toastTimer); t.classList.remove("show","fade-out"); }
   t.textContent=msg; t.style.background=ok?"#1C1C1E":"#FF453A";
-  t.classList.add("show"); setTimeout(function(){ t.classList.remove("show"); },2600);
+  t.classList.add("show");
+  toastTimer=setTimeout(function(){
+    t.classList.add("fade-out");
+    setTimeout(function(){ t.classList.remove("show","fade-out"); toastTimer=null; },300);
+  },2300);
 }
 
 // ─── 로컬스토리지 ───────────────────────────
@@ -408,7 +436,8 @@ var S = {
   catFilter:  "전체",
   syncStatus: "idle",
   formType:"지출", formCat:"", formCard:"",
-  editingId:null, editType:"지출", editCat:"", editCard:""
+  editingId:null, editType:"지출", editCat:"", editCard:"",
+  editingRecId:null  // 고정지출 수정용
 };
 
 function save(key){
@@ -439,8 +468,8 @@ var donutChart=null;
 function render(){
   renderHeader();
   renderHome();
-  var tab=(document.querySelector('.tab-btn.active')||{}).getAttribute?
-    (document.querySelector('.tab-btn.active').getAttribute('onclick')||'').replace(/.*showTab\('(\w+)'.*/,'$1'):'home';
+  var activeTab=document.querySelector('.tab-btn.active');
+  var tab=activeTab?activeTab.getAttribute('data-tab'):'home';
   if(tab==="history")   renderHistory();
   if(tab==="stats")     renderStats();
   if(tab==="recurring") renderRecurringTab();
@@ -454,7 +483,9 @@ function renderHeader(){
   document.getElementById("sumIncome").textContent=won(inc);
   document.getElementById("sumExpense").textContent=won(exp);
   var el=document.getElementById("sumBalance");
-  el.textContent=won(Math.abs(bal)); el.style.color=bal>=0?"var(--blue)":"var(--red)";
+  // [FIX] 잔액에 부호 표시
+  el.textContent=(bal<0?"-":"")+won(Math.abs(bal));
+  el.style.color=bal>=0?"var(--blue)":"var(--red)";
 }
 
 function renderHome(){
@@ -517,9 +548,9 @@ function attachEntryEvents(){
       if(!wasOpen) btns.classList.add("open");
     });
     var eb=row.querySelector("[data-edit]");
-    if(eb) eb.addEventListener("click",function(ev){ ev.stopPropagation(); openEditModal(ev.target.dataset.edit); });
+    if(eb) eb.addEventListener("click",function(ev){ ev.stopPropagation(); openEditModal(this.dataset.edit); });
     var db=row.querySelector("[data-del]");
-    if(db) db.addEventListener("click",function(ev){ ev.stopPropagation(); deleteEntry(ev.target.dataset.del); });
+    if(db) db.addEventListener("click",function(ev){ ev.stopPropagation(); deleteEntry(this.dataset.del); });
   });
 }
 
@@ -582,6 +613,7 @@ function showTab(name,btn){
   if(name==="share")     renderShare();
   if(name==="settings")  renderSettings();
 }
+
 function setTypeFilter(v,btn){
   S.typeFilter=v;
   document.querySelectorAll("#typeFilter .filter-btn").forEach(function(b){b.style.background="var(--line)";b.style.color="var(--mid)";});
@@ -628,6 +660,10 @@ function renderFormCards(){
 function submitForm(){
   var amount=Number(document.getElementById("formAmount").value);
   if(!amount){ showToast("금액을 입력해주세요",false); return; }
+  // [FIX] 카테고리 미선택 방어
+  if(!S.formCat){
+    S.formCat=S.formType==="수입"?"수입":(S.categories[0]||{name:"기타"}).name;
+  }
   addEntries([{
     id:uid(), addedBy:S.settings.userName,
     date:document.getElementById("formDate").value||today(),
@@ -676,7 +712,7 @@ function submitEdit(){
   var updated=Object.assign({},original,{
     type:S.editType, category:S.editCat, amount:amount,
     note:document.getElementById("editNote").value,
-    date:document.getElementById("editDate").value,
+    date:document.getElementById("editDate").value||original.date,
     card:S.editType==="지출"?S.editCard:""
   });
   S.entries=S.entries.map(function(e){return e.id===S.editingId?updated:e;});
@@ -722,6 +758,8 @@ function removeCard(id){ S.cards=S.cards.filter(function(c){return c.id!==id;});
 function setDefaultCard(id){ S.cards=S.cards.map(function(c){return Object.assign({},c,{isDefault:c.id===id});}); save("cards"); renderSettings(); }
 function addCategory(){
   var name=document.getElementById("newCatName").value.trim(); if(!name) return;
+  // [FIX] 중복 카테고리 방지
+  if(S.categories.some(function(c){return c.name===name;})){ showToast("이미 있는 카테고리예요",false); return; }
   S.categories.push({name:name,icon:document.getElementById("newCatIcon").value.trim()||"💡",color:document.getElementById("newCatColor").value});
   save("categories");
   document.getElementById("newCatName").value=""; document.getElementById("newCatIcon").value="";
@@ -749,7 +787,8 @@ function renderStatsMonth(){
   document.getElementById("statsMonthInc").textContent=won(inc);
   document.getElementById("statsMonthExp").textContent=won(exp);
   var el=document.getElementById("statsMonthBal");
-  el.textContent=won(Math.abs(bal)); el.style.color=bal>=0?"var(--blue)":"var(--red)";
+  el.textContent=(bal<0?"-":"")+won(Math.abs(bal));
+  el.style.color=bal>=0?"var(--blue)":"var(--red)";
   var ct=catTotals(), sorted=Object.entries(ct).sort(function(a,b){return b[1]-a[1];});
   document.getElementById("statsCatList").innerHTML=sorted.length?sorted.map(function(x){
     var name=x[0], amt=x[1], cat=getCat(name), pct=exp>0?Math.round(amt/exp*100):0;
@@ -772,7 +811,8 @@ function renderStatsYear(){
   document.getElementById("statsYearInc").textContent=won(yInc);
   document.getElementById("statsYearExp").textContent=won(yExp);
   var yb=document.getElementById("statsYearBal");
-  yb.textContent=won(Math.abs(yBal)); yb.style.color=yBal>=0?"var(--blue)":"var(--red)";
+  yb.textContent=(yBal<0?"-":"")+won(Math.abs(yBal));
+  yb.style.color=yBal>=0?"var(--blue)":"var(--red)";
   var ctx=document.getElementById("statsBarChart").getContext("2d");
   if(statsBarChart) statsBarChart.destroy();
   statsBarChart=new Chart(ctx,{
@@ -783,29 +823,39 @@ function renderStatsYear(){
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:"#636366"}}},scales:{x:{grid:{display:false},ticks:{color:"#636366",font:{size:9}}},y:{display:false}}}
   });
+  // [FIX] 연간 통계 HTML 구문 오류 수정
   document.getElementById("statsYearMonthList").innerHTML=data.map(function(d){
     var bal=d.inc-d.exp;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);">'
       +'<span style="font-size:13px;font-weight:600;color:var(--mid);">'+d.label+'</span>'
       +'<div style="text-align:right;">'
       +'<div style="font-size:11px;color:var(--dim);">수입 <span style="color:var(--green);font-weight:700;">'+won(d.inc)+'</span> · 지출 <span style="color:var(--red);font-weight:700;">'+won(d.exp)+'</span></div>'
-      +'<div style="font-size:12px;font-weight:800;color:'+(bal>=0?"var(--blue)":"var(--red)");+';">'+(bal>=0?"+":"")+won(bal)+'</div></div></div>';
+      +'<div style="font-size:12px;font-weight:800;color:'+(bal>=0?"var(--blue)":"var(--red)")+';">'+(bal>=0?"+":"")+won(bal)+'</div></div></div>';
   }).join("");
 }
 
 // ─── 고정지출 ───────────────────────────────
 function renderRecurringTab(){
-  document.getElementById("recTabCat").innerHTML=S.categories.filter(function(c){return c.name!=="수입";}).map(function(c){
+  // [FIX] 카테고리 select를 매번 다시 그리되, 입력값은 보존
+  var catSelect=document.getElementById("recTabCat");
+  var prevCatVal=catSelect.value;
+  catSelect.innerHTML=S.categories.filter(function(c){return c.name!=="수입";}).map(function(c){
     return '<option value="'+c.name+'">'+c.icon+' '+c.name+'</option>';
   }).join("");
+  // 이전 선택값 복원
+  if(prevCatVal && catSelect.querySelector('option[value="'+prevCatVal+'"]')){
+    catSelect.value=prevCatVal;
+  }
+
   var list=S.recurring;
   document.getElementById("recurringEmpty").style.display=list.length?"none":"block";
   var container=document.getElementById("recurringTabList");
   if(!list.length){ container.innerHTML=""; return; }
-  var totalAmt=list.filter(function(r){return r.active;}).reduce(function(s,r){return s+r.amount;},0);
+  var totalAmt=list.filter(function(r){return r.active;}).reduce(function(s,r){return s+Number(r.amount);},0);
   container.innerHTML='<div style="font-size:12px;color:var(--dim);margin-bottom:10px;">활성 합계 <strong style="color:var(--red);">'+won(totalAmt)+'/월</strong></div>'
     +list.map(function(r){
       var cat=getCat(r.category);
+      // [NEW] 수정 버튼 추가
       return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">'
         +'<div style="width:36px;height:36px;border-radius:10px;background:'+cat.color+'1A;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">'+cat.icon+'</div>'
         +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+r.name+'</div>'
@@ -814,40 +864,67 @@ function renderRecurringTab(){
         +'<div style="font-size:14px;font-weight:800;color:var(--red);">-'+Number(r.amount).toLocaleString()+'</div>'
         +'<div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end;">'
         +'<button onclick="toggleRecurringTab(\''+r.id+'\')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:'+(r.active?"#30D15818":"#F2F2F7")+';color:'+(r.active?"var(--green)":"#8E8E93")+';">'+(r.active?"ON":"OFF")+'</button>'
+        +'<button onclick="openEditRecurring(\''+r.id+'\')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:#0A84FF1A;color:var(--blue);">✏️수정</button>'
         +'<button onclick="removeRecurringTab(\''+r.id+'\')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:#FF453A1A;color:var(--red);">삭제</button>'
         +'</div></div></div>';
     }).join("");
 }
 
+// [FIX] 고정지출 추가 - render() 호출 시 입력값 초기화 문제 해결
 function addRecurringTab(){
-  var name=document.getElementById("recTabName").value.trim();
-  var amount=Number(document.getElementById("recTabAmount").value);
-  var category=document.getElementById("recTabCat").value;
+  var nameEl=document.getElementById("recTabName");
+  var amountEl=document.getElementById("recTabAmount");
+  var catEl=document.getElementById("recTabCat");
+  var dayEl=document.getElementById("recTabDay");
+
+  var name=nameEl.value.trim();
+  var amount=Number(amountEl.value);
+  var category=catEl.value;
+  var dayOfMonth=Number(dayEl.value)||1;
+
   if(!name){ showToast("이름을 입력해주세요",false); return; }
   if(!amount){ showToast("금액을 입력해주세요",false); return; }
-  var dayOfMonth=Number(document.getElementById("recTabDay").value)||1;
+  if(!category){ category=(S.categories.find(function(c){return c.name!=="수입";})||{name:"기타"}).name; }
+  if(dayOfMonth<1) dayOfMonth=1;
+  if(dayOfMonth>31) dayOfMonth=31;
+
   var newRec={id:uid(),name:name,category:category,amount:amount,dayOfMonth:dayOfMonth,card:"",active:true};
+
+  // [FIX] 중복 추가 방지 - 동일 이름+금액 체크
+  var isDuplicate=S.recurring.some(function(r){
+    return r.name===name && Number(r.amount)===amount && r.category===category;
+  });
+  if(isDuplicate){
+    if(!confirm("같은 이름/금액의 고정지출이 이미 있어요. 그래도 추가할까요?")) return;
+  }
+
   S.recurring.push(newRec);
   save("recurring");
   pushRecurring();
-  // 이번 달 내역 즉시 생성 (날짜 경과 여부와 무관하게 바로 적용)
+
+  // 이번 달 내역 즉시 생성
   var already=S.entries.some(function(e){return e.autoId===newRec.id&&ym(e.date)===S.curMonth;});
   if(!already){
     var p=S.curMonth.split("-");
     var dateStr=p[0]+"-"+p[1]+"-"+String(dayOfMonth).padStart(2,"0");
     var newEntry={id:uid(),autoId:newRec.id,addedBy:"자동",date:dateStr,category:category,amount:amount,type:"지출",note:name+"(자동)",card:""};
-    S.entries=S.entries.concat([newEntry]);
+    S.entries.push(newEntry);
     save("entries");
     pushToSheets([newEntry]);
   }
-  LS.set("mm_rec_checked","");
-  document.getElementById("recTabName").value="";
-  document.getElementById("recTabAmount").value="";
-  document.getElementById("recTabDay").value="1";
+
+  // 입력 폼 초기화
+  nameEl.value="";
+  amountEl.value="";
+  dayEl.value="1";
+
+  // [FIX] renderRecurringTab만 호출 (render()가 아닌) → 입력값 보존
   renderRecurringTab();
-  render();
+  renderHeader();
+  renderHome();
   showToast("고정지출 추가됨 ✅");
 }
+
 function toggleRecurringTab(id){
   S.recurring=S.recurring.map(function(r){return r.id===id?Object.assign({},r,{active:!r.active}):r;});
   save("recurring"); pushRecurring(); renderRecurringTab();
@@ -856,6 +933,74 @@ function removeRecurringTab(id){
   if(!confirm("삭제할까요?")) return;
   S.recurring=S.recurring.filter(function(r){return r.id!==id;});
   save("recurring"); pushRecurring(); renderRecurringTab();
+}
+
+// ─── [NEW] 고정지출 수정 ────────────────────
+function openEditRecurring(id){
+  var r=S.recurring.find(function(x){return x.id===id;});
+  if(!r) return;
+  S.editingRecId=id;
+
+  document.getElementById("editRecName").value=r.name||"";
+  document.getElementById("editRecAmount").value=r.amount||"";
+  document.getElementById("editRecDay").value=r.dayOfMonth||1;
+
+  // 카테고리 select 채우기
+  var catSelect=document.getElementById("editRecCat");
+  catSelect.innerHTML=S.categories.filter(function(c){return c.name!=="수입";}).map(function(c){
+    return '<option value="'+c.name+'"'+(c.name===r.category?' selected':'')+'>'+c.icon+' '+c.name+'</option>';
+  }).join("");
+
+  document.getElementById("editRecModal").classList.add("open");
+}
+
+function submitEditRecurring(){
+  if(!S.editingRecId) return;
+
+  var name=document.getElementById("editRecName").value.trim();
+  var amount=Number(document.getElementById("editRecAmount").value);
+  var category=document.getElementById("editRecCat").value;
+  var dayOfMonth=Number(document.getElementById("editRecDay").value)||1;
+
+  if(!name){ showToast("이름을 입력해주세요",false); return; }
+  if(!amount){ showToast("금액을 입력해주세요",false); return; }
+  if(dayOfMonth<1) dayOfMonth=1;
+  if(dayOfMonth>31) dayOfMonth=31;
+
+  var oldRec=S.recurring.find(function(r){return r.id===S.editingRecId;});
+  if(!oldRec) return;
+
+  // 고정지출 정보 업데이트
+  S.recurring=S.recurring.map(function(r){
+    if(r.id!==S.editingRecId) return r;
+    return Object.assign({},r,{name:name,amount:amount,category:category,dayOfMonth:dayOfMonth});
+  });
+  save("recurring");
+  pushRecurring();
+
+  // 이번 달 자동 생성된 내역도 함께 업데이트
+  var updated=false;
+  S.entries=S.entries.map(function(e){
+    if(e.autoId===S.editingRecId && ym(e.date)===S.curMonth){
+      updated=true;
+      var p=S.curMonth.split("-");
+      var newDate=p[0]+"-"+p[1]+"-"+String(dayOfMonth).padStart(2,"0");
+      var updatedEntry=Object.assign({},e,{
+        category:category, amount:amount, note:name+"(자동)", date:newDate
+      });
+      deleteFromSheets(e.id);
+      pushToSheets([updatedEntry]);
+      return updatedEntry;
+    }
+    return e;
+  });
+  if(updated) save("entries");
+
+  closeModal("editRecModal");
+  renderRecurringTab();
+  renderHeader();
+  renderHome();
+  showToast("고정지출 수정됨 ✅");
 }
 
 // ─── 정기지출 자동등록 ──────────────────────
@@ -872,6 +1017,7 @@ function checkRecurring(){
   });
   S.entries=S.entries.concat(news);
   save("entries");
+  pushToSheets(news);
   LS.set("mm_rec_checked",todayStr);
 }
 
@@ -881,13 +1027,10 @@ function repairRecurringNames(){
   var fixed=0;
   S.recurring=S.recurring.map(function(r){
     if(r.name&&r.name!=="(이름없음)") return r;
-    // 1순위: autoId 매칭
     var match=S.entries.find(function(e){ return e.autoId===r.id; });
-    // 2순위: category + amount 매칭 (자동 항목만)
     if(!match) match=S.entries.find(function(e){
       return e.addedBy==="자동"&&e.category===r.category&&Number(e.amount)===Number(r.amount)&&e.note&&e.note.indexOf("(자동)")>=0;
     });
-    // 3순위: category + amount만 매칭
     if(!match) match=S.entries.find(function(e){
       return e.category===r.category&&Number(e.amount)===Number(r.amount)&&e.note;
     });
@@ -912,11 +1055,11 @@ function repairRecurringNames(){
 }
 
 function exportCSV(){
-  var rows=monthEntries().map(function(e){return e.date+","+e.category+","+e.amount+","+e.type+',"'+(e.note||"")+'",'+( e.card||"")+","+(e.addedBy||"");});
+  var rows=monthEntries().map(function(e){return e.date+","+e.category+","+e.amount+","+e.type+',"'+(e.note||"")+'","'+(e.card||"")+'","'+(e.addedBy||"")+'"';});
   download("\uFEFF날짜,카테고리,금액,유형,메모,카드,입력자\n"+rows.join("\n"),"가계부_"+S.curMonth+".csv","text/csv");
 }
 function exportJSON(){
-  download(JSON.stringify({entries:S.entries,categories:S.categories,cards:S.cards},null,2),"가계부백업_"+today()+".json","application/json");
+  download(JSON.stringify({entries:S.entries,categories:S.categories,cards:S.cards,recurring:S.recurring},null,2),"가계부백업_"+today()+".json","application/json");
 }
 function download(content,filename,type){
   var a=document.createElement("a");
@@ -936,7 +1079,7 @@ function startSync(){
 }
 
 function jsonp(url, onSuccess, onError){
-  var cbName="gs_"+Date.now();
+  var cbName="gs_"+Date.now()+"_"+Math.random().toString(36).slice(2,5);
   var script=document.createElement("script");
   var timer=setTimeout(function(){ cleanup(); if(onError) onError(); },20000);
   function cleanup(){ clearTimeout(timer); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
@@ -960,7 +1103,6 @@ function pullFromSheet(retry){
     S.syncStatus="ok"; renderShare();
   },function(){
     if(!retry){
-      // 1회 자동 재시도 (5초 후)
       setTimeout(function(){ pullFromSheet(true); }, 5000);
     } else {
       S.syncStatus="err"; renderShare();
@@ -975,12 +1117,10 @@ function pullRecurring(){
       if(S.recurring.length>0) pushRecurring();
       return;
     }
-    // 이름 없는 데이터 필터링 - 유효한 항목만 허용
     var validData=data.data.filter(function(r){
       var nm=String(r.name||r["항목명"]||r["이름"]||"").trim();
       return nm&&nm!=="(이름없음)";
     });
-    // 유효 데이터가 없으면 로컬 유지하고 push
     if(!validData.length){
       if(S.recurring.length>0) pushRecurring();
       return;
@@ -989,8 +1129,9 @@ function pullRecurring(){
       return Object.assign({},r,{name:r.name||r["항목명"]||r["이름"]||"",category:r.category||r["카테고리"]||"기타",amount:Number(r.amount||r["금액"])||0,dayOfMonth:Number(r.dayOfMonth||r["날짜"]||r["일"])||1,active:r.active==="true"||r.active===true});
     });
     save("recurring");
-    var tabEl=document.querySelector('.tab-btn.active');
-    if(tabEl&&(tabEl.getAttribute('onclick')||'').indexOf('recurring')>=0) renderRecurringTab();
+    var activeTab=document.querySelector('.tab-btn.active');
+    var tab=activeTab?activeTab.getAttribute('data-tab'):'home';
+    if(tab==="recurring") renderRecurringTab();
   },function(){});
 }
 
