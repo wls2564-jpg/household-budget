@@ -881,12 +881,19 @@ function repairRecurringNames(){
   var fixed=0;
   S.recurring=S.recurring.map(function(r){
     if(r.name&&r.name!=="(이름없음)") return r;
-    // autoId가 r.id인 entries에서 note 추출
+    // 1순위: autoId 매칭
     var match=S.entries.find(function(e){ return e.autoId===r.id; });
+    // 2순위: category + amount 매칭 (자동 항목만)
+    if(!match) match=S.entries.find(function(e){
+      return e.addedBy==="자동"&&e.category===r.category&&Number(e.amount)===Number(r.amount)&&e.note&&e.note.indexOf("(자동)")>=0;
+    });
+    // 3순위: category + amount만 매칭
+    if(!match) match=S.entries.find(function(e){
+      return e.category===r.category&&Number(e.amount)===Number(r.amount)&&e.note;
+    });
     if(match&&match.note){
-      var name=match.note.replace(/\(자동\)$/,"").trim();
-      fixed++;
-      return Object.assign({},r,{name:name});
+      var name=match.note.replace("(자동)","").trim();
+      if(name){ fixed++; return Object.assign({},r,{name:name}); }
     }
     return r;
   });
@@ -900,7 +907,7 @@ function repairRecurringNames(){
     showToast(fixed+"개 항목 복구됐어요 ✅");
   } else {
     el.style.color="var(--mid)";
-    el.textContent="복구할 항목이 없어요. (이미 이름이 있거나 매칭 내역 없음)";
+    el.textContent="복구할 항목이 없어요. 시트 recurring 탭에서 B열(name)을 직접 입력해주세요.";
   }
 }
 
