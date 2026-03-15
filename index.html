@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>가을이네 가계부</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -889,19 +892,21 @@ function pullFromSheet(){
 function pullRecurring(){
   if(!S.scriptUrl) return;
   jsonp(S.scriptUrl+"?action=recurring&t="+Date.now(), function(data){
-    if(!data?.data) return;
-    // 시트에 데이터 있으면 시트 기준으로 덮어씀
-    if(data.data.length>0){
-      S.recurring=data.data.map(r=>({
-        ...r,
-        amount:Number(r.amount)||0,
-        dayOfMonth:Number(r.dayOfMonth)||1,
-        active:r.active==="true"||r.active===true,
-      }));
-      save("recurring");
-      const tab=document.querySelector('.tab-btn.active')?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1];
-      if(tab==="recurring") renderRecurringTab();
+    if(!data?.data || data.data.length===0) {
+      // 시트에 데이터 없으면 로컬 데이터를 시트에 올림
+      if(S.recurring.length>0) pushRecurring();
+      return;
     }
+    // 시트에 데이터 있으면 시트 기준으로 덮어씀
+    S.recurring=data.data.map(r=>({
+      ...r,
+      amount:Number(r.amount)||0,
+      dayOfMonth:Number(r.dayOfMonth)||1,
+      active:r.active==="true"||r.active===true,
+    }));
+    save("recurring");
+    const tab=document.querySelector('.tab-btn.active')?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1];
+    if(tab==="recurring") renderRecurringTab();
   }, function(){});
 }
 
@@ -923,7 +928,9 @@ function jsonp(url, onSuccess, onError){
   function cleanup(){ clearTimeout(timer); delete window[cbName]; script.parentNode?.removeChild(script); }
   window[cbName]=function(data){ cleanup(); onSuccess(data); };
   script.onerror=()=>{ cleanup(); onError&&onError(); };
-  script.src=url+"&callback="+cbName;
+  // URL에 이미 파라미터 있으면 & 로 연결
+  const sep=url.includes("?")?"&":"?";
+  script.src=url+sep+"callback="+cbName;
   document.body.appendChild(script);
 }
 
