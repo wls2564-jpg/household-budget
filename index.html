@@ -6,154 +6,102 @@
 <title>가을이네 가계부</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  :root {
-    --bg: #F5F5F0; --card: #FFFFFF; --dark: #1C1C1E; --mid: #636366;
-    --dim: #8E8E93; --line: #E5E5EA; --f2: #F2F2F7;
-    --green: #30D158; --red: #FF453A; --blue: #0A84FF; --acc: #FF9F0A;
-  }
-  body { font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background: var(--bg); min-height:100vh; max-width:480px; margin:0 auto; padding-bottom:80px; color: var(--dark); }
-  button { font-family: inherit; cursor: pointer; border: none; background: none; }
-  input, select, textarea { font-family: inherit; }
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#F5F5F0; --card:#FFFFFF; --dark:#1C1C1E; --mid:#636366;
+  --dim:#8E8E93; --line:#E5E5EA; --f2:#F2F2F7;
+  --green:#30D158; --red:#FF453A; --blue:#0A84FF;
+}
+body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background:var(--bg); min-height:100vh; max-width:480px; margin:0 auto; padding-bottom:80px; color:var(--dark); }
+button { font-family:inherit; cursor:pointer; border:none; background:none; }
+input, select { font-family:inherit; }
 
-  /* HEADER */
-  .header { background: var(--dark); color: #fff; position: sticky; top: 0; z-index: 200; }
-  .header-top { display:flex; justify-content:space-between; align-items:center; padding: 16px 18px 12px; }
-  .header-label { font-size:10px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
-  .month-nav { display:flex; align-items:center; gap:6px; margin-top:2px; }
-  .month-nav button { color:var(--dim); font-size:22px; padding:0 4px; line-height:1; }
-  .month-title { font-size:19px; font-weight:800; letter-spacing:-0.5px; }
-  .add-btn { width:42px; height:42px; border-radius:21px; background:var(--green); color:#fff; font-size:26px; font-weight:300; display:flex; align-items:center; justify-content:center; }
-  .summary-bar { display:grid; grid-template-columns:1fr 1fr 1fr; background:rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.08); }
-  .summary-item { padding:10px 0; text-align:center; }
-  .summary-item .s-label { font-size:10px; color:var(--dim); margin-bottom:2px; }
-  .summary-item .s-val { font-size:14px; font-weight:800; letter-spacing:-0.5px; }
-  .tabs { display:flex; border-top:1px solid rgba(255,255,255,0.06); }
-  .tab-btn { flex:1; padding:8px 0 6px; color:var(--dim); font-size:16px; display:flex; flex-direction:column; align-items:center; gap:1px; border-bottom:2px solid transparent; transition:all 0.15s; }
-  .tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
-  .tab-btn span.tab-label { font-size:8px; font-weight:600; }
+.header { background:var(--dark); color:#fff; position:sticky; top:0; z-index:200; }
+.header-top { display:flex; justify-content:space-between; align-items:center; padding:16px 18px 12px; }
+.header-label { font-size:10px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
+.month-nav { display:flex; align-items:center; gap:6px; margin-top:2px; }
+.month-nav button { color:var(--dim); font-size:22px; padding:0 4px; line-height:1; }
+.month-title { font-size:19px; font-weight:800; letter-spacing:-0.5px; }
+.add-btn { width:42px; height:42px; border-radius:21px; background:var(--green); color:#fff; font-size:26px; font-weight:300; display:flex; align-items:center; justify-content:center; }
+.summary-bar { display:grid; grid-template-columns:1fr 1fr 1fr; background:rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.08); }
+.summary-item { padding:10px 0; text-align:center; }
+.s-label { font-size:10px; color:var(--dim); margin-bottom:2px; }
+.s-val { font-size:14px; font-weight:800; letter-spacing:-0.5px; }
+.tabs { display:flex; border-top:1px solid rgba(255,255,255,0.06); }
+.tab-btn { flex:1; padding:8px 0 6px; color:var(--dim); font-size:16px; display:flex; flex-direction:column; align-items:center; gap:1px; border-bottom:2px solid transparent; transition:all 0.15s; }
+.tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+.tab-label { font-size:8px; font-weight:600; }
 
-  /* TAB CONTENT */
-  .tab-content { display:none; padding:12px 14px; }
-  .tab-content.active { display:block; }
+.tab-content { display:none; padding:12px 14px; }
+.tab-content.active { display:block; }
+.card { background:var(--card); border-radius:20px; padding:16px 14px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.05); }
+.card-title { font-size:13px; font-weight:700; margin-bottom:12px; }
 
-  /* CARDS */
-  .card { background:var(--card); border-radius:20px; padding:16px 14px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.05); }
-  .card-title { font-size:13px; font-weight:700; color:var(--dark); margin-bottom:12px; }
+.entry-row { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:14px; padding:11px 13px; margin-bottom:5px; box-shadow:0 1px 5px rgba(0,0,0,0.05); cursor:pointer; }
+.entry-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+.entry-info { flex:1; min-width:0; }
+.entry-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.entry-meta { font-size:11px; color:var(--dim); display:flex; gap:5px; margin-top:1px; flex-wrap:wrap; align-items:center; }
+.card-badge { padding:1px 6px; border-radius:6px; font-weight:600; font-size:10px; }
+.entry-amount { text-align:right; flex-shrink:0; }
+.amount { font-size:14px; font-weight:800; letter-spacing:-0.3px; }
+.entry-btns { display:none; gap:4px; margin-top:4px; justify-content:flex-end; }
+.entry-btns.open { display:flex; }
+.act-btn { font-size:10px; border-radius:6px; padding:2px 8px; font-weight:600; border:none; cursor:pointer; }
+.date-group { margin-bottom:10px; }
+.date-label { font-size:11px; font-weight:700; color:var(--mid); margin-bottom:6px; padding-left:2px; }
 
-  /* AI INPUT */
-  .ai-box { background:linear-gradient(135deg,#1C1C1E,#2C2C2E); border-radius:20px; padding:14px 16px; margin-bottom:12px; }
-  .ai-badge { font-size:10px; color:var(--green); font-weight:700; letter-spacing:1.5px; margin-bottom:6px; }
-  .ai-hint { font-size:11px; color:#636366; margin-bottom:10px; }
-  .ai-row { display:flex; gap:8px; }
-  .ai-input { flex:1; background:rgba(255,255,255,0.09); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:10px 12px; color:#fff; font-size:13px; outline:none; }
-  .ai-input::placeholder { color:#636366; }
-  .ai-submit { background:var(--green); border-radius:12px; padding:10px 18px; color:#fff; font-weight:700; font-size:13px; flex-shrink:0; }
-  .ai-submit:disabled { background:#3A3A3C; color:#636366; cursor:not-allowed; }
+.chart-wrap { display:flex; align-items:center; gap:12px; }
+.chart-canvas-wrap { flex-shrink:0; width:130px; height:130px; }
+.legend-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+.legend-dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; margin-right:4px; }
+.legend-name { font-size:12px; display:flex; align-items:center; }
+.legend-pct { font-size:11px; font-weight:700; }
 
-  /* ENTRY ROW */
-  .entry-row { display:flex; align-items:center; gap:10px; background:var(--card); border-radius:14px; padding:11px 13px; margin-bottom:5px; box-shadow:0 1px 5px rgba(0,0,0,0.05); cursor:pointer; }
-  .entry-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
-  .entry-info { flex:1; min-width:0; }
-  .entry-name { font-size:14px; font-weight:600; color:var(--dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .entry-meta { font-size:11px; color:var(--dim); display:flex; gap:5px; margin-top:1px; flex-wrap:wrap; align-items:center; }
-  .card-badge { padding:1px 6px; border-radius:6px; font-weight:600; font-size:10px; }
-  .entry-amount { text-align:right; flex-shrink:0; }
-  .entry-amount .amount { font-size:14px; font-weight:800; letter-spacing:-0.3px; }
-  .del-btn { font-size:10px; color:var(--red); background:#FF453A1A; border-radius:6px; padding:2px 8px; margin-top:4px; font-weight:600; display:none; }
-  .entry-row.open .del-btn { display:inline-block; }
-  .date-group { margin-bottom:10px; }
-  .date-label { font-size:11px; font-weight:700; color:var(--mid); margin-bottom:6px; padding-left:2px; }
+.overlay { position:fixed; inset:0; z-index:500; display:none; flex-direction:column; justify-content:flex-end; }
+.overlay.open { display:flex; }
+.overlay-bg { flex:1; background:rgba(0,0,0,0.45); }
+.sheet { background:#fff; border-radius:22px 22px 0 0; padding:20px 18px 40px; max-height:90vh; overflow-y:auto; max-width:480px; width:100%; margin:0 auto; }
+.sheet-handle { width:40px; height:4px; background:#E5E5EA; border-radius:2px; margin:0 auto 18px; }
+.sheet-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.sheet-title { font-size:17px; font-weight:800; }
+.sheet-close { background:#F2F2F7; border-radius:18px; width:32px; height:32px; font-size:15px; color:#636366; display:flex; align-items:center; justify-content:center; }
 
-  /* CHART */
-  .chart-wrap { display:flex; align-items:center; gap:12px; }
-  .chart-canvas-wrap { flex-shrink:0; width:130px; height:130px; }
-  .chart-legend { flex:1; }
-  .legend-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
-  .legend-dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; margin-right:4px; }
-  .legend-name { font-size:12px; display:flex; align-items:center; }
-  .legend-pct { font-size:11px; font-weight:700; color:var(--dark); }
+.form-label { font-size:11px; color:#8E8E93; font-weight:600; margin-bottom:4px; margin-top:8px; }
+.form-input { width:100%; background:#F2F2F7; border:none; border-radius:12px; padding:11px 12px; font-size:14px; color:var(--dark); outline:none; margin-bottom:8px; }
+.form-input.big { font-size:20px; font-weight:800; }
+.chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.chip { padding:7px 12px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.type-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px; }
+.type-btn { border-radius:12px; padding:11px; font-weight:700; font-size:14px; border:none; cursor:pointer; }
 
-  /* BOTTOM SHEET */
-  .overlay { position:fixed; inset:0; z-index:500; display:flex; flex-direction:column; justify-content:flex-end; display:none; }
-  .overlay.open { display:flex; }
-  .overlay-bg { flex:1; background:rgba(0,0,0,0.45); }
-  .sheet { background:#fff; border-radius:22px 22px 0 0; padding:20px 18px 40px; max-height:90vh; overflow-y:auto; max-width:480px; width:100%; margin:0 auto; }
-  .sheet-handle { width:40px; height:4px; background:#E5E5EA; border-radius:2px; margin:0 auto 18px; }
-  .sheet-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
-  .sheet-title { font-size:17px; font-weight:800; color:var(--dark); }
-  .sheet-close { background:#F2F2F7; border-radius:18px; width:32px; height:32px; font-size:15px; color:#636366; display:flex; align-items:center; justify-content:center; }
+.filter-row { display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px; }
+.filter-btn { padding:6px 14px; border-radius:18px; font-weight:600; font-size:12px; border:none; cursor:pointer; white-space:nowrap; flex-shrink:0; }
 
-  /* FORM */
-  .form-label { font-size:11px; color:#8E8E93; font-weight:600; margin-bottom:4px; margin-top:8px; }
-  .form-input { width:100%; background:#F2F2F7; border:none; border-radius:12px; padding:11px 12px; font-size:14px; color:var(--dark); outline:none; margin-bottom:8px; }
-  .form-input.big { font-size:20px; font-weight:800; }
-  .chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-  .chip { padding:7px 12px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; }
-  .type-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px; }
-  .type-btn { border-radius:12px; padding:11px; font-weight:700; font-size:14px; border:none; cursor:pointer; }
-  .submit-btn { width:100%; border-radius:14px; padding:14px; font-weight:800; font-size:15px; border:none; cursor:pointer; margin-top:4px; }
+.budget-item { background:var(--card); border-radius:16px; padding:13px 14px; margin-bottom:8px; box-shadow:0 1px 5px rgba(0,0,0,0.04); }
+.budget-row { display:flex; justify-content:space-between; align-items:center; }
+.budget-bar-wrap { background:#F2F2F7; border-radius:4px; height:5px; margin-top:8px; }
+.budget-bar { height:100%; border-radius:4px; transition:width 0.4s; }
 
-  /* FILTER */
-  .filter-row { display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:4px; }
-  .filter-btn { padding:6px 14px; border-radius:18px; font-weight:600; font-size:12px; border:none; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.settings-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.small-btn { font-size:11px; border-radius:8px; padding:3px 10px; font-weight:700; border:none; cursor:pointer; }
+.cat-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.cat-chip { display:flex; align-items:center; gap:4px; border-radius:18px; padding:5px 10px; font-size:12px; }
+.cat-chip .remove { color:#8E8E93; font-size:13px; background:none; border:none; cursor:pointer; }
+.add-row { display:flex; gap:6px; }
+.color-input { width:40px; height:38px; border-radius:8px; border:none; cursor:pointer; padding:2px; flex-shrink:0; }
+.export-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.export-btn { border-radius:12px; padding:11px; color:#fff; font-weight:700; font-size:13px; border:none; cursor:pointer; }
 
-  /* BUDGET */
-  .budget-item { background:var(--card); border-radius:16px; padding:13px 14px; margin-bottom:8px; box-shadow:0 1px 5px rgba(0,0,0,0.04); }
-  .budget-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:0; }
-  .budget-bar-wrap { background:#F2F2F7; border-radius:4px; height:5px; margin-top:8px; }
-  .budget-bar { height:100%; border-radius:4px; transition:width 0.4s; }
-
-  /* SETTINGS */
-  .settings-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .settings-name { font-size:13px; display:flex; align-items:center; gap:8px; }
-  .color-dot { width:10px; height:10px; border-radius:5px; display:inline-block; }
-  .badge-default { font-size:9px; background:#E5E5EA; padding:2px 6px; border-radius:6px; color:#636366; }
-  .cat-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-  .cat-chip { display:flex; align-items:center; gap:4px; border-radius:18px; padding:5px 10px; font-size:12px; }
-  .cat-chip .remove { color:#8E8E93; font-size:13px; background:none; border:none; cursor:pointer; padding:0 0 0 2px; }
-  .add-row { display:flex; gap:6px; }
-  .add-row input { flex:1; }
-  .add-row .icon-input { width:44px; text-align:center; }
-  .add-row .color-input { width:40px; height:38px; border-radius:8px; border:none; cursor:pointer; padding:2px; flex-shrink:0; }
-  .action-btn { border-radius:12px; padding:8px 14px; color:#fff; font-weight:700; font-size:12px; flex-shrink:0; }
-  .recurring-item { display:flex; justify-content:space-between; align-items:center; background:#F2F2F7; border-radius:12px; padding:10px 12px; margin-bottom:8px; }
-  .rec-info .rec-name { font-size:13px; font-weight:600; }
-  .rec-info .rec-sub { font-size:11px; color:var(--mid); }
-  .rec-btns { display:flex; gap:6px; align-items:center; }
-  .small-btn { font-size:11px; border-radius:8px; padding:3px 10px; font-weight:700; border:none; cursor:pointer; }
-  .export-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .export-btn { border-radius:12px; padding:11px; color:#fff; font-weight:700; font-size:13px; border:none; cursor:pointer; }
-
-  /* SHARE */
-  .share-guide { background:#F2F2F7; border-radius:14px; padding:12px 14px; margin-bottom:14px; }
-  .guide-item { display:flex; gap:10px; margin-bottom:8px; font-size:12px; color:var(--mid); }
-  .sync-status { display:flex; align-items:center; gap:8px; border-radius:12px; padding:10px 12px; }
-  .api-link { color:#0A84FF; font-size:11px; text-decoration:none; }
-
-  /* TOAST */
-  .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); color:#fff; padding:10px 22px; border-radius:24px; z-index:9999; font-size:14px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); white-space:nowrap; display:none; transition:all 0.3s; }
-  .toast.show { display:block; }
-
-  /* CARD PICK */
-  .card-pick-item { background:#F2F2F7; border-radius:14px; padding:14px 16px; margin-bottom:8px; display:flex; align-items:center; gap:12px; cursor:pointer; border:1.5px solid transparent; }
-  .card-pick-item:hover { border-color:#0A84FF; }
-
-  /* MONTH BAR */
-  .bar-chart-wrap { width:100%; height:160px; }
-
-  @media (max-width:380px) {
-    .month-title { font-size:16px; }
-    .s-val { font-size:12px !important; }
-  }
+.sync-status { display:flex; align-items:center; gap:8px; border-radius:12px; padding:10px 12px; }
+.toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); color:#fff; padding:10px 22px; border-radius:24px; z-index:9999; font-size:14px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); white-space:nowrap; display:none; }
+.toast.show { display:block; }
 </style>
 </head>
 <body>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- HEADER -->
 <div class="header">
   <div class="header-top">
     <div>
@@ -165,23 +113,14 @@
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <div id="syncBadge" style="display:none;font-size:10px;background:rgba(255,255,255,0.08);padding:4px 10px;border-radius:12px;"></div>
+      <div id="syncBadge" style="font-size:10px;background:rgba(255,255,255,0.08);padding:4px 10px;border-radius:12px;"></div>
       <button class="add-btn" onclick="openAddModal()">+</button>
     </div>
   </div>
   <div class="summary-bar">
-    <div class="summary-item">
-      <div class="s-label">수입</div>
-      <div class="s-val" id="sumIncome" style="color:var(--green)">0원</div>
-    </div>
-    <div class="summary-item">
-      <div class="s-label">지출</div>
-      <div class="s-val" id="sumExpense" style="color:var(--red)">0원</div>
-    </div>
-    <div class="summary-item">
-      <div class="s-label">잔액</div>
-      <div class="s-val" id="sumBalance" style="color:var(--blue)">0원</div>
-    </div>
+    <div class="summary-item"><div class="s-label">수입</div><div class="s-val" id="sumIncome" style="color:var(--green)">0원</div></div>
+    <div class="summary-item"><div class="s-label">지출</div><div class="s-val" id="sumExpense" style="color:var(--red)">0원</div></div>
+    <div class="summary-item"><div class="s-label">잔액</div><div class="s-val" id="sumBalance" style="color:var(--blue)">0원</div></div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('home',this)">🏠<span class="tab-label">홈</span></button>
@@ -193,23 +132,23 @@
   </div>
 </div>
 
-<!-- HOME TAB -->
+<!-- 홈 -->
 <div id="tab-home" class="tab-content active">
   <div class="card">
     <div class="card-title">카테고리별 지출</div>
     <div class="chart-wrap" id="chartWrap">
       <div class="chart-canvas-wrap"><canvas id="donutChart"></canvas></div>
-      <div class="chart-legend" id="chartLegend"></div>
+      <div id="chartLegend" style="flex:1;"></div>
     </div>
     <div id="noChartMsg" style="display:none;text-align:center;padding:24px 0;color:var(--dim);font-size:13px;">아직 지출 내역이 없어요</div>
   </div>
   <div id="homeEntries"></div>
 </div>
 
-<!-- HISTORY TAB -->
+<!-- 내역 -->
 <div id="tab-history" class="tab-content">
   <div class="filter-row" id="typeFilter">
-    <button class="filter-btn active" style="background:var(--dark);color:#fff;" onclick="setTypeFilter('all',this)">전체</button>
+    <button class="filter-btn" style="background:var(--dark);color:#fff;" onclick="setTypeFilter('all',this)">전체</button>
     <button class="filter-btn" style="background:var(--line);color:var(--mid);" onclick="setTypeFilter('지출',this)">지출</button>
     <button class="filter-btn" style="background:var(--line);color:var(--mid);" onclick="setTypeFilter('수입',this)">수입</button>
   </div>
@@ -218,24 +157,7 @@
   <div id="historyEntries"></div>
 </div>
 
-<!-- BUDGET TAB -->
-<div id="tab-budget" class="tab-content">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div>
-      <div style="font-size:15px;font-weight:800;">예산 관리</div>
-      <div id="budgetSubtitle" style="font-size:11px;color:var(--mid);margin-top:2px;"></div>
-    </div>
-    <button id="budgetEditBtn" onclick="toggleBudgetEdit()" style="background:var(--dark);border-radius:12px;padding:7px 16px;color:#fff;font-weight:700;font-size:13px;">편집</button>
-  </div>
-  <div id="budgetOverall" style="display:none;" class="card" style="margin-bottom:12px;">
-    <div style="font-size:11px;color:var(--mid);margin-bottom:6px;">전체 예산 달성률</div>
-    <div class="budget-bar-wrap"><div id="overallBar" class="budget-bar" style="width:0%;background:var(--blue);"></div></div>
-    <div id="overallPct" style="font-size:11px;color:var(--mid);text-align:right;margin-top:4px;"></div>
-  </div>
-  <div id="budgetList"></div>
-</div>
-
-<!-- STATS TAB -->
+<!-- 통계 -->
 <div id="tab-stats" class="tab-content">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
     <div style="font-size:15px;font-weight:800;">📊 통계</div>
@@ -244,31 +166,18 @@
       <button id="statsViewYear" onclick="setStatsView('year')" style="background:var(--line);color:var(--mid);border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;">연간</button>
     </div>
   </div>
-
-  <!-- 월별 뷰 -->
   <div id="statsMonthView">
     <div class="card">
       <div class="card-title" id="statsMonthTitle"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">수입</div>
-          <div id="statsMonthInc" style="font-size:13px;font-weight:800;color:var(--green);"></div>
-        </div>
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">지출</div>
-          <div id="statsMonthExp" style="font-size:13px;font-weight:800;color:var(--red);"></div>
-        </div>
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">잔액</div>
-          <div id="statsMonthBal" style="font-size:13px;font-weight:800;color:var(--blue);"></div>
-        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">수입</div><div id="statsMonthInc" style="font-size:13px;font-weight:800;color:var(--green);"></div></div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">지출</div><div id="statsMonthExp" style="font-size:13px;font-weight:800;color:var(--red);"></div></div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">잔액</div><div id="statsMonthBal" style="font-size:13px;font-weight:800;"></div></div>
       </div>
       <div class="card-title">카테고리별 지출</div>
       <div id="statsCatList"></div>
     </div>
   </div>
-
-  <!-- 연간 뷰 -->
   <div id="statsYearView" style="display:none;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <button onclick="changeStatsYear(-1)" style="font-size:22px;color:var(--dim);background:none;border:none;cursor:pointer;">‹</button>
@@ -277,18 +186,9 @@
     </div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 수입</div>
-          <div id="statsYearInc" style="font-size:12px;font-weight:800;color:var(--green);"></div>
-        </div>
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 지출</div>
-          <div id="statsYearExp" style="font-size:12px;font-weight:800;color:var(--red);"></div>
-        </div>
-        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;">
-          <div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 잔액</div>
-          <div id="statsYearBal" style="font-size:12px;font-weight:800;color:var(--blue);"></div>
-        </div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 수입</div><div id="statsYearInc" style="font-size:12px;font-weight:800;color:var(--green);"></div></div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 지출</div><div id="statsYearExp" style="font-size:12px;font-weight:800;color:var(--red);"></div></div>
+        <div style="background:var(--f2);border-radius:12px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">연 잔액</div><div id="statsYearBal" style="font-size:12px;font-weight:800;"></div></div>
       </div>
       <div class="card-title">월별 수입/지출</div>
       <div style="height:180px;"><canvas id="statsBarChart"></canvas></div>
@@ -300,7 +200,7 @@
   </div>
 </div>
 
-<!-- RECURRING TAB -->
+<!-- 고정지출 -->
 <div id="tab-recurring" class="tab-content">
   <div style="font-size:15px;font-weight:800;margin-bottom:14px;">🔄 고정지출 관리</div>
   <div class="card">
@@ -317,34 +217,22 @@
     <div class="form-label">카테고리</div>
     <select class="form-input" id="recTabCat"></select>
     <div class="form-label">매월 며칠</div>
-    <input class="form-input" type="number" id="recTabDay" placeholder="1~31" min="1" max="31" value="1">
+    <input class="form-input" type="number" id="recTabDay" min="1" max="31" value="1">
     <button onclick="addRecurringTab()" style="width:100%;background:var(--green);border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:4px;">추가하기</button>
   </div>
 </div>
+
+<!-- 공유 -->
 <div id="tab-share" class="tab-content">
   <div class="card">
     <div class="card-title">🤝 와이프와 공유</div>
-    <div class="share-guide">
-      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px;">동기화 방식</div>
-      <div style="font-size:12px;color:var(--mid);line-height:1.7;">
-        • Google Sheets를 공유 DB로 사용<br>
-        • 두 분 모두 같은 Spreadsheet ID 입력<br>
-        • 30초마다 자동 동기화
-      </div>
+    <div style="font-size:12px;color:var(--mid);background:var(--f2);border-radius:14px;padding:12px 14px;margin-bottom:12px;line-height:1.7;">
+      • Google Sheets를 공유 DB로 사용<br>• 두 분 모두 같은 Apps Script URL 입력<br>• 30초마다 자동 동기화
     </div>
-    <div class="sync-status" id="syncStatus" style="background:#F2F2F7;">
+    <div class="sync-status" id="syncStatus" style="background:var(--f2);">
       <span style="font-size:18px;">📡</span>
       <span style="font-size:13px;font-weight:600;color:var(--mid);">연결 안 됨</span>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-title">📋 설정 방법</div>
-    <div class="guide-item"><span>1️⃣</span><span>Google Sheets에서 새 스프레드시트 생성</span></div>
-    <div class="guide-item"><span>2️⃣</span><span>시트 이름을 'entries'로 변경</span></div>
-    <div class="guide-item"><span>3️⃣</span><span>첫 행: id, date, category, amount, type, note, card, addedBy</span></div>
-    <div class="guide-item"><span>4️⃣</span><span>와이프와 시트 공유 (편집자 권한)</span></div>
-    <div class="guide-item"><span>5️⃣</span><span>아래에 Spreadsheet ID 입력</span></div>
-    <div class="guide-item" style="margin-bottom:0;"><span>6️⃣</span><span>Google Access Token 입력 후 저장</span></div>
   </div>
   <div class="card">
     <div class="card-title">🔑 연결 정보</div>
@@ -353,63 +241,48 @@
     <div class="form-label">파트너 이름</div>
     <input class="form-input" id="sharePartnerName" placeholder="아내">
     <div class="form-label">Apps Script URL</div>
-    <input class="form-input" id="shareSheetId" placeholder="https://script.google.com/..." style="font-size:11px;">
+    <input class="form-input" id="shareScriptUrl" placeholder="https://script.google.com/..." style="font-size:11px;">
     <button onclick="saveShareSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:4px;">저장</button>
   </div>
 </div>
 
-<!-- SETTINGS TAB -->
+<!-- 설정 -->
 <div id="tab-settings" class="tab-content">
   <div class="card">
     <div class="card-title">👤 내 이름</div>
     <input class="form-input" id="userNameInput" placeholder="남편">
-    <button onclick="saveApiSettings()" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:6px;">저장</button>
+    <button onclick="saveUserName()" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-top:6px;">저장</button>
   </div>
-
   <div class="card">
     <div class="card-title">💳 카드 관리</div>
     <div id="cardList"></div>
     <div class="add-row" style="margin-top:10px;">
-      <input class="form-input add-row" id="newCardName" placeholder="카드명" style="margin-bottom:0;">
+      <input class="form-input" id="newCardName" placeholder="카드명" style="margin-bottom:0;flex:1;">
       <input type="color" id="newCardColor" value="#3B82F6" class="color-input">
-      <button onclick="addCard()" class="action-btn" style="background:var(--dark);">추가</button>
+      <button onclick="addCard()" style="background:var(--dark);border-radius:12px;padding:8px 14px;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;">추가</button>
     </div>
   </div>
-
   <div class="card">
     <div class="card-title">🏷️ 카테고리 관리</div>
     <div class="cat-chips" id="catChips"></div>
     <div class="add-row">
-      <input class="form-input icon-input" id="newCatIcon" placeholder="🏷️" style="margin-bottom:0;">
+      <input class="form-input" id="newCatIcon" placeholder="🏷️" style="margin-bottom:0;width:44px;text-align:center;">
       <input class="form-input" id="newCatName" placeholder="카테고리명" style="margin-bottom:0;flex:1;">
       <input type="color" id="newCatColor" value="#818CF8" class="color-input">
-      <button onclick="addCategory()" class="action-btn" style="background:var(--dark);">추가</button>
+      <button onclick="addCategory()" style="background:var(--dark);border-radius:12px;padding:8px 14px;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;">추가</button>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-title">🔄 정기지출 자동등록</div>
-    <div id="recurringList"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
-      <input class="form-input" id="newRecName" placeholder="이름 (월세, 보험료)" style="margin-bottom:0;">
-      <input class="form-input" type="number" id="newRecAmount" placeholder="금액" style="margin-bottom:0;">
-      <select class="form-input" id="newRecCat" style="margin-bottom:0;"></select>
-      <input class="form-input" type="number" id="newRecDay" placeholder="매월 며칠?" min="1" max="31" value="1" style="margin-bottom:0;">
-    </div>
-    <button onclick="addRecurring()" style="width:100%;background:var(--dark);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;margin-top:10px;">추가</button>
-  </div>
-
   <div class="card">
     <div class="card-title">💾 데이터 백업</div>
     <div class="export-grid">
       <button class="export-btn" onclick="exportCSV()" style="background:#34C759;">CSV 내보내기</button>
       <button class="export-btn" onclick="exportJSON()" style="background:#0A84FF;">JSON 백업</button>
     </div>
-    <div style="font-size:11px;color:var(--dim);margin-top:8px;">CSV: 이번달 내역 · JSON: 전체 데이터 백업</div>
+    <div style="font-size:11px;color:var(--dim);margin-top:8px;">CSV: 이번달 내역 · JSON: 전체 백업</div>
   </div>
 </div>
 
-<!-- ADD MODAL -->
+<!-- 추가 모달 -->
 <div class="overlay" id="addModal">
   <div class="overlay-bg" onclick="closeModal('addModal')"></div>
   <div class="sheet">
@@ -434,11 +307,11 @@
       <div class="form-label">카드</div>
       <div class="chip-row" id="cardChipForm"></div>
     </div>
-    <button class="submit-btn" id="formSubmit" onclick="submitForm()" style="background:var(--dark);color:#fff;">추가하기</button>
+    <button onclick="submitForm()" style="width:100%;background:var(--dark);border-radius:14px;padding:14px;color:#fff;font-weight:800;font-size:15px;border:none;cursor:pointer;margin-top:4px;">추가하기</button>
   </div>
 </div>
 
-<!-- EDIT MODAL -->
+<!-- 수정 모달 -->
 <div class="overlay" id="editModal">
   <div class="overlay-bg" onclick="closeModal('editModal')"></div>
   <div class="sheet">
@@ -467,25 +340,14 @@
   </div>
 </div>
 
-<!-- CARD PICK MODAL -->
-<div class="overlay" id="cardPickModal">
-  <div class="overlay-bg" onclick="closeModal('cardPickModal')"></div>
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title">카드를 선택해주세요</div>
-      <button class="sheet-close" onclick="closeModal('cardPickModal')">✕</button>
-    </div>
-    <div style="font-size:13px;color:var(--mid);margin-bottom:16px;" id="cardPickMsg"></div>
-    <div id="cardPickList"></div>
-    <button onclick="confirmCardPick(null)" style="width:100%;background:#F2F2F7;border-radius:14px;padding:12px;color:var(--mid);font-weight:600;font-size:13px;border:none;cursor:pointer;margin-top:4px;">카드 없이 추가</button>
-  </div>
-</div>
-
 <script>
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
+// ─── 로컬스토리지 ───────────────────────────
+const LS = {
+  get:(k,fb)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch{ return fb; }},
+  set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} }
+};
+
+// ─── 기본 데이터 ────────────────────────────
 const DEFAULT_CATS = [
   {name:"식비",icon:"🍚",color:"#FF6B6B"},{name:"카페",icon:"☕",color:"#C9956A"},
   {name:"교통",icon:"🚇",color:"#4ECDC4"},{name:"쇼핑",icon:"🛍️",color:"#F472B6"},
@@ -499,171 +361,127 @@ const DEFAULT_CARDS = [
   {id:"c3",name:"현금",color:"#6B7280",isDefault:false},
 ];
 
-const LS = {
-  get:(k,fb)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch{ return fb; }},
-  set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} }
+// ─── 앱 상태 ────────────────────────────────
+const S = {
+  entries:    LS.get("mm_entries", []),
+  categories: LS.get("mm_cats", DEFAULT_CATS),
+  cards:      LS.get("mm_cards", DEFAULT_CARDS),
+  budgets:    LS.get("mm_budgets", {}),
+  recurring:  LS.get("mm_recur", []),
+  settings:   LS.get("mm_settings", {userName:"남편", partnerName:"아내"}),
+  scriptUrl:  LS.get("mm_script_url", "https://script.google.com/macros/s/AKfycby4zFxfFeHKMCzmtVivJtTj5WaecLU6vydQieYJqB6sh9GdmQ3cgedVQ-VpCi0I6RBY/exec"),
+  curMonth:   ym(new Date()),
+  typeFilter: "all",
+  catFilter:  "전체",
+  syncStatus: "idle",
+  formType:"지출", formCat:"", formCard:"",
+  editingId:null, editType:"지출", editCat:"", editCard:"",
 };
 
-let state = {
-  entries:   LS.get("mm_entries",[]),
-  categories:LS.get("mm_cats",DEFAULT_CATS),
-  cards:     LS.get("mm_cards",DEFAULT_CARDS),
-  budgets:   LS.get("mm_budgets",{}),
-  recurring: LS.get("mm_recur",[]),
-  settings:  LS.get("mm_settings",{geminiKey:"",sheetId:"",accessToken:"",userName:"남편",partnerName:"아내"}),
-  curMonth:  ym(new Date()),
-  typeFilter:"all",
-  catFilter: "전체",
-  formType:  "지출",
-  formCat:   "",
-  formCard:  "",
-  budgetEditing: false,
-  pendingEntries: null,
-  syncStatus:"idle",
-  scriptUrl: LS.get("mm_script_url","https://script.google.com/macros/s/AKfycby4zFxfFeHKMCzmtVivJtTj5WaecLU6vydQieYJqB6sh9GdmQ3cgedVQ-VpCi0I6RBY/exec"),
-};
-
-function save(key) {
-  const map = {entries:"mm_entries",categories:"mm_cats",cards:"mm_cards",budgets:"mm_budgets",recurring:"mm_recur",settings:"mm_settings"};
-  if(map[key]) LS.set(map[key], state[key]);
+function save(key){
+  const map={entries:"mm_entries",categories:"mm_cats",cards:"mm_cards",budgets:"mm_budgets",recurring:"mm_recur",settings:"mm_settings"};
+  if(map[key]) LS.set(map[key], S[key]);
 }
 
-// ═══════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════
+// ─── 유틸 ───────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function ym(d){ const dt=new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`; }
 function won(n){ return Number(n||0).toLocaleString("ko-KR")+"원"; }
 function ymLbl(s){ const [y,m]=s.split("-"); return `${y}년 ${Number(m)}월`; }
-function getCat(name){ return state.categories.find(c=>c.name===name)||{icon:"💸",color:"#9CA3AF"}; }
-function getCard(name){ return state.cards.find(c=>c.name===name); }
-
+function getCat(name){ return S.categories.find(c=>c.name===name)||{icon:"💸",color:"#9CA3AF",name}; }
+function getCard(name){ return S.cards.find(c=>c.name===name); }
 function showToast(msg, ok=true){
   const t=document.getElementById("toast");
   t.textContent=msg; t.style.background=ok?"#1C1C1E":"#FF453A";
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2600);
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600);
 }
 
-// ═══════════════════════════════════════════
-// MONTH NAV
-// ═══════════════════════════════════════════
-function allMonths(){
-  const ms=[...new Set(state.entries.map(e=>ym(e.date)))].sort().reverse();
-  if(!ms.includes(state.curMonth)) ms.unshift(state.curMonth);
-  return ms;
+// ─── 파생 데이터 ────────────────────────────
+function monthEntries(m){ return S.entries.filter(e=>ym(e.date)===(m||S.curMonth)); }
+function totalInc(m){ return monthEntries(m).filter(e=>e.type==="수입").reduce((s,e)=>s+Number(e.amount),0); }
+function totalExp(m){ return monthEntries(m).filter(e=>e.type==="지출").reduce((s,e)=>s+Number(e.amount),0); }
+function catTotals(m){
+  const t={};
+  monthEntries(m).filter(e=>e.type==="지출").forEach(e=>{ t[e.category]=(t[e.category]||0)+Number(e.amount); });
+  return t;
 }
+
+// ─── 월 이동 ────────────────────────────────
 function changeMonth(dir){
-  // dir: -1 = 이전달(‹), +1 = 다음달(›)
-  const [y,m]=state.curMonth.split("-").map(Number);
-  const d=new Date(y,m-1+dir,1);
-  state.curMonth=ym(d);
+  const [y,m]=S.curMonth.split("-").map(Number);
+  S.curMonth=ym(new Date(y,m-1+dir,1));
   render();
 }
 
-// ═══════════════════════════════════════════
-// DERIVED DATA
-// ═══════════════════════════════════════════
-function monthEntries(){ return state.entries.filter(e=>ym(e.date)===state.curMonth); }
-function expenses(){ return monthEntries().filter(e=>e.type==="지출"); }
-function incomes(){  return monthEntries().filter(e=>e.type==="수입"); }
-function totalExp(){ return expenses().reduce((s,e)=>s+Number(e.amount),0); }
-function totalInc(){ return incomes().reduce((s,e)=>s+Number(e.amount),0); }
-function catTotals(){
-  const t={};
-  expenses().forEach(e=>{ t[e.category]=(t[e.category]||0)+Number(e.amount); });
-  return t;
-}
-function chartData(){
-  return Object.entries(catTotals())
-    .map(([name,value])=>({name,value,color:getCat(name).color}))
-    .sort((a,b)=>b.value-a.value);
-}
-
-// ═══════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════
-let donutChart=null, barChart=null;
+// ─── 렌더링 ─────────────────────────────────
+let donutChart=null;
 
 function render(){
   renderHeader();
-  const activeTab=document.querySelector('.tab-btn.active');
-  const tabName=activeTab?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1]||'home';
   renderHome();
-  if(tabName==="history") renderHistory();
-  if(tabName==="budget") renderBudget();
-  if(tabName==="settings") renderSettings();
-  if(tabName==="share") renderShare();
+  const tab=document.querySelector('.tab-btn.active')?.getAttribute('onclick')?.match(/showTab\('(\w+)'/)?.[1]||'home';
+  if(tab==="history")   renderHistory();
+  if(tab==="stats")     renderStats();
+  if(tab==="recurring") renderRecurringTab();
+  if(tab==="share")     renderShare();
+  if(tab==="settings")  renderSettings();
 }
 
 function renderHeader(){
-  document.getElementById("monthTitle").textContent=ymLbl(state.curMonth);
+  document.getElementById("monthTitle").textContent=ymLbl(S.curMonth);
   const inc=totalInc(), exp=totalExp(), bal=inc-exp;
   document.getElementById("sumIncome").textContent=won(inc);
   document.getElementById("sumExpense").textContent=won(exp);
-  const balEl=document.getElementById("sumBalance");
-  balEl.textContent=won(Math.abs(bal));
-  balEl.style.color=bal>=0?"var(--blue)":"var(--red)";
+  const el=document.getElementById("sumBalance");
+  el.textContent=won(Math.abs(bal)); el.style.color=bal>=0?"var(--blue)":"var(--red)";
 }
 
 function renderHome(){
-  // chart
-  const cd=chartData(); const exp=totalExp();
-  const chartWrap=document.getElementById("chartWrap");
-  const noMsg=document.getElementById("noChartMsg");
-  if(cd.length===0){ chartWrap.style.display="none"; noMsg.style.display="block"; }
+  const ct=catTotals(), exp=totalExp();
+  const cd=Object.entries(ct).map(([name,value])=>({name,value,color:getCat(name).color})).sort((a,b)=>b.value-a.value);
+  const chartWrap=document.getElementById("chartWrap"), noMsg=document.getElementById("noChartMsg");
+  if(!cd.length){ chartWrap.style.display="none"; noMsg.style.display="block"; }
   else {
     chartWrap.style.display="flex"; noMsg.style.display="none";
     const ctx=document.getElementById("donutChart").getContext("2d");
     if(donutChart) donutChart.destroy();
     donutChart=new Chart(ctx,{
       type:"doughnut",
-      data:{ labels:cd.map(c=>c.name), datasets:[{data:cd.map(c=>c.value),backgroundColor:cd.map(c=>c.color),borderWidth:2,borderColor:"#fff"}]},
-      options:{ cutout:"60%",plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>" "+won(i.raw)}}},animation:{animateRotate:true}}
+      data:{labels:cd.map(c=>c.name),datasets:[{data:cd.map(c=>c.value),backgroundColor:cd.map(c=>c.color),borderWidth:2,borderColor:"#fff"}]},
+      options:{cutout:"60%",plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>" "+won(i.raw)}}}}
     });
-    const leg=document.getElementById("chartLegend");
-    leg.innerHTML=cd.slice(0,6).map(c=>{
-      const cat=getCat(c.name); const pct=exp>0?Math.round(c.value/exp*100):0;
-      return `<div class="legend-item"><span class="legend-name"><span class="legend-dot" style="background:${c.color}"></span>${cat.icon} ${c.name}</span><span class="legend-pct">${pct}%</span></div>`;
+    document.getElementById("chartLegend").innerHTML=cd.slice(0,6).map(c=>{
+      const pct=exp>0?Math.round(c.value/exp*100):0;
+      return `<div class="legend-item"><span class="legend-name"><span class="legend-dot" style="background:${c.color}"></span>${getCat(c.name).icon} ${c.name}</span><span class="legend-pct">${pct}%</span></div>`;
     }).join("");
   }
-
-  // entries
-  const mE=[...monthEntries()].sort((a,b)=>b.date.localeCompare(a.date));
-  const grouped=mE.reduce((acc,e)=>{
-    const last=acc[acc.length-1];
-    if(!last||last.date!==e.date) acc.push({date:e.date,items:[e]});
-    else last.items.push(e);
-    return acc;
-  },[]);
+  const sorted=[...monthEntries()].sort((a,b)=>b.date.localeCompare(a.date));
   const container=document.getElementById("homeEntries");
-  if(mE.length===0){ container.innerHTML=`<div style="text-align:center;padding:48px 0;color:var(--dim);font-size:13px;">내역이 없어요<br><span style="color:var(--green)">+ 버튼</span>으로 추가해보세요</div>`; return; }
+  if(!sorted.length){ container.innerHTML=`<div style="text-align:center;padding:48px 0;color:var(--dim);font-size:13px;">내역이 없어요<br><span style="color:var(--green)">+ 버튼</span>으로 추가해보세요</div>`; return; }
+  const grouped=sorted.reduce((acc,e)=>{ const last=acc[acc.length-1]; if(!last||last.date!==e.date) acc.push({date:e.date,items:[e]}); else last.items.push(e); return acc; },[]);
   container.innerHTML=grouped.map(g=>{
     const dayExp=g.items.filter(e=>e.type==="지출").reduce((s,e)=>s+Number(e.amount),0);
-    return `<div class="date-group">
-      <div class="date-label">${g.date.slice(5).replace("-","월 ")}일 <span style="font-weight:400;color:var(--dim)">-${won(dayExp)}</span></div>
-      ${g.items.map(e=>entryRowHTML(e)).join("")}
-    </div>`;
+    return `<div class="date-group"><div class="date-label">${g.date.slice(5).replace("-","월 ")}일 <span style="font-weight:400;color:var(--dim)">-${won(dayExp)}</span></div>${g.items.map(entryRowHTML).join("")}</div>`;
   }).join("");
   attachEntryEvents();
 }
 
 function entryRowHTML(e){
-  const cat=getCat(e.category); const card=getCard(e.card);
+  const cat=getCat(e.category), card=getCard(e.card);
   const cardBadge=card?`<span class="card-badge" style="background:${card.color}22;color:${card.color}">${card.name}</span>`:"";
-  const addedBy=e.addedBy?`<span>· ${e.addedBy}</span>`:"";
+  const byBadge=e.addedBy?`<span>· ${e.addedBy}</span>`:"";
   return `<div class="entry-row" data-id="${e.id}">
     <div class="entry-icon" style="background:${cat.color}1A">${cat.icon}</div>
     <div class="entry-info">
       <div class="entry-name">${e.note||e.category}</div>
-      <div class="entry-meta"><span>${e.category}</span>${cardBadge}${addedBy}</div>
+      <div class="entry-meta"><span>${e.category}</span>${cardBadge}${byBadge}</div>
     </div>
     <div class="entry-amount">
       <div class="amount" style="color:${e.type==="수입"?"var(--green)":"var(--red)"}">${e.type==="수입"?"+":"-"}${Number(e.amount).toLocaleString()}</div>
-      <div style="display:none;gap:4px;margin-top:4px;" class="entry-btns">
-        <button class="del-btn" style="display:inline-block;" data-edit="${e.id}">✏️수정</button>
-        <button class="del-btn" style="display:inline-block;" data-del="${e.id}">삭제</button>
+      <div class="entry-btns">
+        <button class="act-btn" style="background:#F2F2F7;color:var(--mid);" data-edit="${e.id}">✏️수정</button>
+        <button class="act-btn" style="background:#FF453A1A;color:var(--red);" data-del="${e.id}">삭제</button>
       </div>
     </div>
   </div>`;
@@ -671,597 +489,280 @@ function entryRowHTML(e){
 
 function attachEntryEvents(){
   document.querySelectorAll(".entry-row").forEach(row=>{
-    row.addEventListener("click",function(e){
-      if(e.target.dataset.del||e.target.dataset.edit) return;
-      const btns=this.querySelector(".entry-btns");
-      const isOpen=btns.style.display==="flex";
-      // 다른 열려있는 것 닫기
-      document.querySelectorAll(".entry-btns").forEach(b=>b.style.display="none");
-      btns.style.display=isOpen?"none":"flex";
+    row.addEventListener("click",function(ev){
+      if(ev.target.dataset.del||ev.target.dataset.edit) return;
+      const btns=this.querySelector(".entry-btns"), wasOpen=btns.classList.contains("open");
+      document.querySelectorAll(".entry-btns").forEach(b=>b.classList.remove("open"));
+      if(!wasOpen) btns.classList.add("open");
     });
-    const editBtn=row.querySelector("[data-edit]");
-    if(editBtn) editBtn.addEventListener("click",function(e){
-      e.stopPropagation();
-      openEditModal(this.dataset.edit);
-    });
-    const delBtn=row.querySelector("[data-del]");
-    if(delBtn) delBtn.addEventListener("click",function(e){
-      e.stopPropagation();
-      deleteEntry(this.dataset.del);
-    });
+    row.querySelector("[data-edit]")?.addEventListener("click",ev=>{ ev.stopPropagation(); openEditModal(ev.target.dataset.edit); });
+    row.querySelector("[data-del]")?.addEventListener("click",ev=>{ ev.stopPropagation(); deleteEntry(ev.target.dataset.del); });
   });
 }
 
 function renderHistory(){
   const filtered=monthEntries()
-    .filter(e=>state.typeFilter==="all"||e.type===state.typeFilter)
-    .filter(e=>state.catFilter==="전체"||e.category===state.catFilter)
+    .filter(e=>S.typeFilter==="all"||e.type===S.typeFilter)
+    .filter(e=>S.catFilter==="전체"||e.category===S.catFilter)
     .sort((a,b)=>b.date.localeCompare(a.date));
   const total=filtered.reduce((s,e)=>s+(e.type==="지출"?-1:1)*Number(e.amount),0);
-
-  // cat filter
   const cats=["전체",...new Set(monthEntries().map(e=>e.category))];
   document.getElementById("catFilter").innerHTML=cats.map(c=>
-    `<button class="filter-btn" onclick="setCatFilter('${c}',this)" style="background:${state.catFilter===c?"var(--blue)":"var(--line)"};color:${state.catFilter===c?"#fff":"var(--mid)"};">${c}</button>`
+    `<button class="filter-btn" onclick="setCatFilter('${c}')" style="background:${S.catFilter===c?"var(--blue)":"var(--line)"};color:${S.catFilter===c?"#fff":"var(--mid)"};">${c}</button>`
   ).join("");
-
-  document.getElementById("historyCount").innerHTML=`${filtered.length}건 · 합계 <strong style="color:${total>=0?"var(--green)":"var(--red)"}">${won(Math.abs(total))}</strong>`;
-  const container=document.getElementById("historyEntries");
-  if(!filtered.length){ container.innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:13px;">내역이 없어요</div>`; return; }
-  container.innerHTML=filtered.map(e=>entryRowHTML(e)).join("");
+  document.getElementById("historyCount").innerHTML=`${filtered.length}건 · <strong style="color:${total>=0?"var(--green)":"var(--red)"}">${won(Math.abs(total))}</strong>`;
+  const el=document.getElementById("historyEntries");
+  el.innerHTML=filtered.length?filtered.map(entryRowHTML).join(""):`<div style="text-align:center;padding:40px 0;color:var(--dim);font-size:13px;">내역이 없어요</div>`;
   attachEntryEvents();
 }
 
-function renderBudget(){
-  const cd=catTotals(); const exp=totalExp();
-  const totalBudget=state.categories.filter(c=>c.name!=="수입").reduce((s,c)=>{
-    return s+(state.budgets[`${state.curMonth}-${c.name}`]||0);
-  },0);
-
-  const overall=document.getElementById("budgetOverall");
-  if(totalBudget>0){
-    overall.style.display="block";
-    const pct=Math.min(exp/totalBudget*100,100);
-    document.getElementById("overallBar").style.width=pct+"%";
-    document.getElementById("overallBar").style.background=exp>totalBudget?"var(--red)":"var(--blue)";
-    document.getElementById("overallPct").textContent=Math.round(pct)+"%";
-    document.getElementById("budgetSubtitle").textContent=`총예산 ${won(totalBudget)} · 사용 ${won(exp)}`;
-  } else { overall.style.display="none"; }
-
-  const list=document.getElementById("budgetList");
-  list.innerHTML=state.categories.filter(c=>c.name!=="수입").map(cat=>{
-    const k=`${state.curMonth}-${cat.name}`;
-    const budget=state.budgets[k]||0;
-    const spent=cd[cat.name]||0;
-    const pct=budget>0?Math.min(spent/budget*100,100):0;
-    const over=budget>0&&spent>budget;
-    const barHTML=budget>0?`<div class="budget-bar-wrap"><div class="budget-bar" style="width:${pct}%;background:${over?"var(--red)":cat.color}"></div></div>`:"";
-    const valHTML=state.budgetEditing
-      ?`<input type="number" placeholder="예산" value="${budget||""}" onchange="setBudget('${k}',this.value)" style="width:100px;background:var(--f2);border:none;border-radius:8px;padding:5px 10px;text-align:right;font-size:13px;outline:none;font-family:inherit;">`
-      :`<span style="font-size:12px;color:${over?"var(--red)":"var(--mid)"}">${won(spent)}${budget>0?" / "+won(budget):""}${over?" ⚠️":""}</span>`;
-    return `<div class="budget-item"><div class="budget-row"><span style="font-size:14px;">${cat.icon} ${cat.name}</span>${valHTML}</div>${barHTML}</div>`;
-  }).join("");
-}
-
-function renderAI(){
-  document.getElementById("aiMonthLabel").textContent=`${ymLbl(state.curMonth)} 패턴 분석 + 절약 팁`;
-  const inc=totalInc(),exp=totalExp(),bal=inc-exp;
-  document.getElementById("aiSummaryCards").innerHTML=
-    [["수입",inc,"var(--green)"],["지출",exp,"var(--red)"],["잔액",bal,bal>=0?"var(--blue)":"var(--red)"]].map(([l,v,c])=>
-      `<div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:10px 8px;text-align:center;">
-        <div style="font-size:10px;color:#636366;margin-bottom:3px;">${l}</div>
-        <div style="font-size:13px;font-weight:800;color:${c};">${won(Math.abs(v))}</div>
-      </div>`
-    ).join("");
-
-  // bar chart
-  const ms=allMonths().slice(0,6).reverse();
-  const barData=ms.map(m=>({
-    label:m.slice(5)+"월",
-    inc:state.entries.filter(e=>ym(e.date)===m&&e.type==="수입").reduce((s,e)=>s+Number(e.amount),0),
-    exp:state.entries.filter(e=>ym(e.date)===m&&e.type==="지출").reduce((s,e)=>s+Number(e.amount),0),
-  }));
-  const bctx=document.getElementById("barChart").getContext("2d");
-  if(barChart) barChart.destroy();
-  barChart=new Chart(bctx,{
-    type:"bar",
-    data:{
-      labels:barData.map(d=>d.label),
-      datasets:[
-        {label:"수입",data:barData.map(d=>d.inc),backgroundColor:"#30D158",borderRadius:4,maxBarThickness:22},
-        {label:"지출",data:barData.map(d=>d.exp),backgroundColor:"#FF453A",borderRadius:4,maxBarThickness:22},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{font:{size:11},color:"#636366"}}},
-      scales:{x:{grid:{display:false},ticks:{color:"#636366",font:{size:10}}},y:{display:false}},
-    }
-  });
-}
-
 function renderSettings(){
-  document.getElementById("userNameInput").value=state.settings.userName||"남편";
-
-  // cards
-  document.getElementById("cardList").innerHTML=state.cards.map(c=>`
+  document.getElementById("userNameInput").value=S.settings.userName||"남편";
+  document.getElementById("cardList").innerHTML=S.cards.map(c=>`
     <div class="settings-row">
-      <span class="settings-name"><span class="color-dot" style="background:${c.color}"></span>${c.name}${c.isDefault?'<span class="badge-default">기본</span>':''}</span>
+      <span style="font-size:13px;display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:5px;display:inline-block;background:${c.color}"></span>${c.name}${c.isDefault?'<span style="font-size:9px;background:#E5E5EA;padding:2px 6px;border-radius:6px;color:#636366;">기본</span>':''}</span>
       <div style="display:flex;gap:6px;">
         ${!c.isDefault?`<button class="small-btn" style="background:#E5E5EA;color:#636366;" onclick="setDefaultCard('${c.id}')">기본설정</button>`:""}
         <button class="small-btn" style="background:#FF453A1A;color:var(--red);" onclick="removeCard('${c.id}')">삭제</button>
       </div>
     </div>`).join("");
-
-  // cat chips
-  document.getElementById("catChips").innerHTML=state.categories.map(c=>`
-    <div class="cat-chip" style="background:${c.color}18;">
-      <span>${c.icon}</span><span>${c.name}</span>
-      <button class="remove" onclick="removeCat('${c.name}')">×</button>
-    </div>`).join("");
-
-  // recurring
-  document.getElementById("recurringList").innerHTML=state.recurring.map(r=>`
-    <div class="recurring-item">
-      <div class="rec-info"><div class="rec-name">${r.name}</div><div class="rec-sub">매월 ${r.dayOfMonth}일 · ${won(r.amount)} · ${r.category}</div></div>
-      <div class="rec-btns">
-        <button class="small-btn" style="background:${r.active?"#30D15818":"#F2F2F7"};color:${r.active?"var(--green)":"#8E8E93"};" onclick="toggleRecurring('${r.id}')">${r.active?"ON":"OFF"}</button>
-        <button class="small-btn" style="background:#FF453A1A;color:var(--red);" onclick="removeRecurring('${r.id}')">삭제</button>
-      </div>
-    </div>`).join("");
-
-  // cat select for recurring
-  const sel=document.getElementById("newRecCat");
-  sel.innerHTML=state.categories.map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join("");
+  document.getElementById("catChips").innerHTML=S.categories.map(c=>`
+    <div class="cat-chip" style="background:${c.color}18;"><span>${c.icon}</span><span>${c.name}</span><button class="remove" onclick="removeCat('${c.name}')">×</button></div>`).join("");
 }
 
 function renderShare(){
-  document.getElementById("shareUserName").value=state.settings.userName||"남편";
-  document.getElementById("sharePartnerName").value=state.settings.partnerName||"아내";
-  document.getElementById("shareSheetId").value=state.scriptUrl||"";
-  const st=state.syncStatus;
-  const el=document.getElementById("syncStatus");
+  document.getElementById("shareUserName").value=S.settings.userName||"남편";
+  document.getElementById("sharePartnerName").value=S.settings.partnerName||"아내";
+  document.getElementById("shareScriptUrl").value=S.scriptUrl||"";
+  const map={
+    idle: ["📡","연결 안 됨","var(--f2)","var(--mid)"],
+    syncing:["⏳","동기화 중...","var(--f2)","var(--mid)"],
+    ok:   ["✅","구글 시트 연동됨","#30D15818","var(--green)"],
+    err:  ["❌","연결 오류","#FF453A18","var(--red)"]
+  };
+  const [ic,lb,bg,cl]=map[S.syncStatus]||map.idle;
+  document.getElementById("syncStatus").style.background=bg;
+  document.getElementById("syncStatus").innerHTML=`<span style="font-size:18px;">${ic}</span><span style="font-size:13px;font-weight:600;color:${cl};">${lb}</span>`;
   const badge=document.getElementById("syncBadge");
-  const map={idle:["📡","연결 중...","#F2F2F7","var(--mid)"],syncing:["⏳","동기화 중...","#F2F2F7","var(--mid)"],ok:["✅","구글 시트 연동됨","#30D15818","var(--green)"],err:["❌","연결 오류","#FF453A18","var(--red)"]};
-  const [ic,lb,bg,cl]=map[st]||map.idle;
-  el.style.background=bg;
-  el.innerHTML=`<span style="font-size:18px;">${ic}</span><span style="font-size:13px;font-weight:600;color:${cl};">${lb}</span>`;
-  badge.style.display="block"; badge.style.color=cl; badge.textContent=ic+" "+lb;
+  badge.style.color=cl; badge.textContent=ic+" "+lb;
 }
 
-// ═══════════════════════════════════════════
-// TAB
-// ═══════════════════════════════════════════
-function showTab(name, btn){
+// ─── 탭 전환 ────────────────────────────────
+function showTab(name,btn){
   document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
   document.getElementById("tab-"+name).classList.add("active");
   btn.classList.add("active");
-  if(name==="history") renderHistory();
-  if(name==="budget") renderBudget();
-  if(name==="settings") renderSettings();
-  if(name==="share") renderShare();
-  if(name==="stats") renderStats();
+  if(name==="history")   renderHistory();
+  if(name==="stats")     renderStats();
   if(name==="recurring") renderRecurringTab();
+  if(name==="share")     renderShare();
+  if(name==="settings")  renderSettings();
 }
 function setTypeFilter(v,btn){
-  state.typeFilter=v;
+  S.typeFilter=v;
   document.querySelectorAll("#typeFilter .filter-btn").forEach(b=>{ b.style.background="var(--line)"; b.style.color="var(--mid)"; });
   btn.style.background="var(--dark)"; btn.style.color="#fff";
   renderHistory();
 }
-function setCatFilter(v,btn){ state.catFilter=v; renderHistory(); }
+function setCatFilter(v){ S.catFilter=v; renderHistory(); }
 
-// ═══════════════════════════════════════════
-// ADD MODAL
-// ═══════════════════════════════════════════
+// ─── 내역 추가/수정/삭제 ────────────────────
 function openAddModal(){
-  state.formType="지출";
-  state.formCat=state.categories.find(c=>c.name!=="수입")?.name||"식비";
-  state.formCard=state.cards.find(c=>c.isDefault)?.name||state.cards[0]?.name||"";
+  S.formType="지출";
+  S.formCat=S.categories.find(c=>c.name!=="수입")?.name||"식비";
+  S.formCard=S.cards.find(c=>c.isDefault)?.name||S.cards[0]?.name||"";
   document.getElementById("formDate").value=today();
   document.getElementById("formAmount").value="";
   document.getElementById("formNote").value="";
-  renderFormCats(); renderFormCards();
+  setFormType("지출");
   document.getElementById("addModal").classList.add("open");
 }
 function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+
 function setFormType(t){
-  state.formType=t;
-  const exp=document.getElementById("typeExp"), inc=document.getElementById("typeInc");
-  if(t==="지출"){ exp.style.background="var(--dark)"; exp.style.color="#fff"; inc.style.background="#F2F2F7"; inc.style.color="var(--mid)"; }
-  else { inc.style.background="var(--dark)"; inc.style.color="#fff"; exp.style.background="#F2F2F7"; exp.style.color="var(--mid)"; }
-  state.formCat=t==="수입"?"수입":(state.categories.find(c=>c.name!=="수입")?.name||"식비");
-  renderFormCats();
-  document.getElementById("cardSection").style.display=t==="지출"?"block":"none";
+  S.formType=t;
+  const isExp=t==="지출";
+  document.getElementById("typeExp").style.cssText=`background:${isExp?"var(--dark)":"#F2F2F7"};color:${isExp?"#fff":"var(--mid)"}`;
+  document.getElementById("typeInc").style.cssText=`background:${!isExp?"var(--dark)":"#F2F2F7"};color:${!isExp?"#fff":"var(--mid)"}`;
+  S.formCat=isExp?(S.categories.find(c=>c.name!=="수입")?.name||"식비"):"수입";
+  document.getElementById("cardSection").style.display=isExp?"block":"none";
+  renderFormCats(); renderFormCards();
 }
 function renderFormCats(){
-  const avail=state.formType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:state.categories.filter(c=>c.name!=="수입");
+  const avail=S.formType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:S.categories.filter(c=>c.name!=="수입");
   document.getElementById("catChipForm").innerHTML=avail.map(c=>{
-    const sel=state.formCat===c.name;
-    return `<button class="chip" onclick="selectFormCat('${c.name}')" style="background:${sel?c.color:c.color+"20"};color:${sel?"#fff":"var(--dark)"};">${c.icon} ${c.name}</button>`;
+    const sel=S.formCat===c.name;
+    return `<button class="chip" onclick="S.formCat='${c.name}';renderFormCats()" style="background:${sel?c.color:c.color+"20"};color:${sel?"#fff":"var(--dark)"};">${c.icon} ${c.name}</button>`;
   }).join("");
 }
 function renderFormCards(){
-  document.getElementById("cardChipForm").innerHTML=state.cards.map(c=>{
-    const sel=state.formCard===c.name;
-    return `<button class="chip" onclick="selectFormCard('${c.name}')" style="background:${sel?c.color:c.color+"20"};color:${sel?"#fff":"var(--dark)"};">${c.name}</button>`;
+  document.getElementById("cardChipForm").innerHTML=S.cards.map(c=>{
+    const sel=S.formCard===c.name;
+    return `<button class="chip" onclick="S.formCard='${c.name}';renderFormCards()" style="background:${sel?c.color:c.color+"20"};color:${sel?"#fff":"var(--dark)"};">${c.name}</button>`;
   }).join("");
 }
-function selectFormCat(name){ state.formCat=name; renderFormCats(); }
-function selectFormCard(name){ state.formCard=name; renderFormCards(); }
 function submitForm(){
   const amount=Number(document.getElementById("formAmount").value);
-  if(!amount) return;
-  const entry={
-    id:uid(), addedBy:state.settings.userName,
+  if(!amount){ showToast("금액을 입력해주세요",false); return; }
+  addEntries([{
+    id:uid(), addedBy:S.settings.userName,
     date:document.getElementById("formDate").value||today(),
-    category:state.formCat, amount, type:state.formType,
+    category:S.formCat, amount, type:S.formType,
     note:document.getElementById("formNote").value,
-    card:state.formType==="지출"?state.formCard:"",
-  };
-  addEntries([entry]);
+    card:S.formType==="지출"?S.formCard:"",
+  }]);
   closeModal("addModal");
   showToast("추가됐어요 ✅");
 }
 
-// ═══════════════════════════════════════════
-// ENTRIES CRUD
-// ═══════════════════════════════════════════
-function addEntries(list){
-  state.entries=[...state.entries,...list];
-  save("entries");
-  render();
-  pushToSheets(list);
-}
-function deleteEntry(id){
-  state.entries=state.entries.filter(e=>e.id!==id);
-  save("entries");
-  deleteFromSheets(id);
-  render();
-  showToast("삭제됐어요",false);
-}
-
-// ═══════════════════════════════════════════
-// EDIT ENTRY
-// ═══════════════════════════════════════════
-let editingId = null;
-let editType = "지출";
-let editCat = "";
-let editCard = "";
-
 function openEditModal(id){
-  const e=state.entries.find(x=>x.id===id);
-  if(!e) return;
-  editingId=id;
-  editType=e.type;
-  editCat=e.category;
-  editCard=e.card||"";
+  const e=S.entries.find(x=>x.id===id); if(!e) return;
+  S.editingId=id; S.editType=e.type; S.editCat=e.category; S.editCard=e.card||"";
   document.getElementById("editAmount").value=e.amount;
   document.getElementById("editNote").value=e.note||"";
   document.getElementById("editDate").value=e.date;
   setEditType(e.type);
-  document.getElementById("editCardSection").style.display=e.type==="지출"?"block":"none";
   document.getElementById("editModal").classList.add("open");
 }
-
 function setEditType(t){
-  editType=t;
-  const exp=document.getElementById("editTypeExp"),inc=document.getElementById("editTypeInc");
-  if(t==="지출"){ exp.style.background="var(--dark)";exp.style.color="#fff";inc.style.background="#F2F2F7";inc.style.color="var(--mid)"; }
-  else { inc.style.background="var(--dark)";inc.style.color="#fff";exp.style.background="#F2F2F7";exp.style.color="var(--mid)"; }
-  editCat=t==="수입"?"수입":(state.categories.find(c=>c.name!=="수입")?.name||"식비");
+  S.editType=t;
+  const isExp=t==="지출";
+  document.getElementById("editTypeExp").style.cssText=`background:${isExp?"var(--dark)":"#F2F2F7"};color:${isExp?"#fff":"var(--mid)"}`;
+  document.getElementById("editTypeInc").style.cssText=`background:${!isExp?"var(--dark)":"#F2F2F7"};color:${!isExp?"#fff":"var(--mid)"}`;
+  S.editCat=isExp?(S.categories.find(c=>c.name!=="수입")?.name||"식비"):"수입";
+  document.getElementById("editCardSection").style.display=isExp?"block":"none";
   renderEditCats();
-  document.getElementById("editCardSection").style.display=t==="지출"?"block":"none";
 }
-
 function renderEditCats(){
-  const avail=editType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:state.categories.filter(c=>c.name!=="수입");
+  const avail=S.editType==="수입"?[{name:"수입",icon:"💰",color:"#10B981"}]:S.categories.filter(c=>c.name!=="수입");
   document.getElementById("editCatChips").innerHTML=avail.map(c=>{
-    const sel=editCat===c.name;
-    return `<button class="chip" onclick="selectEditCat('${c.name}')" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.icon} ${c.name}</button>`;
+    const sel=S.editCat===c.name;
+    return `<button class="chip" onclick="S.editCat='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.icon} ${c.name}</button>`;
   }).join("");
-  document.getElementById("editCardChips").innerHTML=state.cards.map(c=>{
-    const sel=editCard===c.name;
-    return `<button class="chip" onclick="selectEditCard('${c.name}')" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.name}</button>`;
+  document.getElementById("editCardChips").innerHTML=S.cards.map(c=>{
+    const sel=S.editCard===c.name;
+    return `<button class="chip" onclick="S.editCard='${c.name}';renderEditCats()" style="background:${sel?c.color:c.color+'20'};color:${sel?'#fff':'var(--dark)'};">${c.name}</button>`;
   }).join("");
 }
-function selectEditCat(name){ editCat=name; renderEditCats(); }
-function selectEditCard(name){ editCard=name; renderEditCats(); }
-
 function submitEdit(){
   const amount=Number(document.getElementById("editAmount").value);
-  if(!amount||!editingId) return;
-  state.entries=state.entries.map(e=>{
-    if(e.id!==editingId) return e;
-    return {...e,
-      type:editType, category:editCat, amount,
-      note:document.getElementById("editNote").value,
-      date:document.getElementById("editDate").value,
-      card:editType==="지출"?editCard:""
-    };
-  });
+  if(!amount||!S.editingId){ showToast("금액을 입력해주세요",false); return; }
+  const updated={
+    ...S.entries.find(e=>e.id===S.editingId),
+    type:S.editType, category:S.editCat, amount,
+    note:document.getElementById("editNote").value,
+    date:document.getElementById("editDate").value,
+    card:S.editType==="지출"?S.editCard:"",
+  };
+  S.entries=S.entries.map(e=>e.id===S.editingId?updated:e);
   save("entries");
-  // 시트에서도 삭제 후 재추가
-  const updated=state.entries.find(e=>e.id===editingId);
-  deleteFromSheets(editingId);
+  deleteFromSheets(S.editingId);
   setTimeout(()=>pushToSheets([updated]),500);
   closeModal("editModal");
   render();
   showToast("수정됐어요 ✅");
 }
 
-async function deleteFromSheets(id){
-  if(!state.scriptUrl) return;
-  try {
-    await fetch(state.scriptUrl,{
-      method:"POST", mode:"no-cors",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"delete",id})
-    });
-    pushedIds.delete(id);
-    savePushedIds();
-  } catch{}
+function addEntries(list){
+  S.entries=[...S.entries,...list];
+  save("entries"); render();
+  pushToSheets(list);
+}
+function deleteEntry(id){
+  if(!confirm("삭제할까요?")) return;
+  S.entries=S.entries.filter(e=>e.id!==id);
+  save("entries"); deleteFromSheets(id); render();
+  showToast("삭제됐어요",false);
 }
 
-// ═══════════════════════════════════════════
-// BUDGET
-// ═══════════════════════════════════════════
-function toggleBudgetEdit(){
-  state.budgetEditing=!state.budgetEditing;
-  const btn=document.getElementById("budgetEditBtn");
-  btn.textContent=state.budgetEditing?"저장":"편집";
-  btn.style.background=state.budgetEditing?"var(--green)":"var(--dark)";
-  if(!state.budgetEditing) save("budgets");
-  renderBudget();
-}
-function setBudget(key,val){ state.budgets[key]=Number(val)||0; save("budgets"); }
-
-// ═══════════════════════════════════════════
-// SETTINGS ACTIONS
-// ═══════════════════════════════════════════
-function saveApiSettings(){
-  state.settings.userName=document.getElementById("userNameInput").value.trim()||"남편";
+// ─── 설정 액션 ──────────────────────────────
+function saveUserName(){
+  S.settings.userName=document.getElementById("userNameInput").value.trim()||"남편";
   save("settings"); showToast("저장됐어요 ✅");
 }
 function saveShareSettings(){
-  state.settings.userName=document.getElementById("shareUserName").value.trim()||"남편";
-  state.settings.partnerName=document.getElementById("sharePartnerName").value.trim()||"아내";
-  state.scriptUrl=document.getElementById("shareSheetId").value.trim();
-  LS.set("mm_script_url", state.scriptUrl);
+  S.settings.userName=document.getElementById("shareUserName").value.trim()||"남편";
+  S.settings.partnerName=document.getElementById("sharePartnerName").value.trim()||"아내";
+  S.scriptUrl=document.getElementById("shareScriptUrl").value.trim();
+  LS.set("mm_script_url", S.scriptUrl);
   save("settings"); showToast("저장됐어요 ✅");
   startSync();
 }
 function addCard(){
-  const name=document.getElementById("newCardName").value.trim();
-  if(!name) return;
-  const color=document.getElementById("newCardColor").value;
-  state.cards.push({id:uid(),name,color,isDefault:false});
-  save("cards"); document.getElementById("newCardName").value="";
-  renderSettings(); showToast("카드 추가됨");
+  const name=document.getElementById("newCardName").value.trim(); if(!name) return;
+  S.cards.push({id:uid(),name,color:document.getElementById("newCardColor").value,isDefault:false});
+  save("cards"); document.getElementById("newCardName").value=""; renderSettings(); showToast("카드 추가됨");
 }
-function removeCard(id){ state.cards=state.cards.filter(c=>c.id!==id); save("cards"); renderSettings(); }
-function setDefaultCard(id){ state.cards=state.cards.map(c=>({...c,isDefault:c.id===id})); save("cards"); renderSettings(); }
+function removeCard(id){ S.cards=S.cards.filter(c=>c.id!==id); save("cards"); renderSettings(); }
+function setDefaultCard(id){ S.cards=S.cards.map(c=>({...c,isDefault:c.id===id})); save("cards"); renderSettings(); }
 function addCategory(){
-  const name=document.getElementById("newCatName").value.trim();
-  const icon=document.getElementById("newCatIcon").value.trim()||"💡";
-  const color=document.getElementById("newCatColor").value;
-  if(!name) return;
-  state.categories.push({name,icon,color});
+  const name=document.getElementById("newCatName").value.trim(); if(!name) return;
+  S.categories.push({name,icon:document.getElementById("newCatIcon").value.trim()||"💡",color:document.getElementById("newCatColor").value});
   save("categories");
-  document.getElementById("newCatName").value="";
-  document.getElementById("newCatIcon").value="";
+  document.getElementById("newCatName").value=""; document.getElementById("newCatIcon").value="";
   renderSettings(); showToast("카테고리 추가됨");
 }
-function removeCat(name){ state.categories=state.categories.filter(c=>c.name!==name); save("categories"); renderSettings(); }
-function addRecurring(){
-  const name=document.getElementById("newRecName").value.trim();
-  const amount=Number(document.getElementById("newRecAmount").value);
-  const category=document.getElementById("newRecCat").value;
-  const dayOfMonth=Number(document.getElementById("newRecDay").value)||1;
-  if(!name){ showToast("이름을 입력해주세요",false); return; }
-  if(!amount){ showToast("금액을 입력해주세요",false); return; }
-  if(!category){ showToast("카테고리를 선택해주세요",false); return; }
-  state.recurring.push({id:uid(),name,category,amount,dayOfMonth,card:"",active:true});
-  save("recurring");
-  document.getElementById("newRecName").value="";
-  document.getElementById("newRecAmount").value="";
-  renderSettings(); showToast("정기지출 추가됨 ✅");
-}
-function toggleRecurring(id){ state.recurring=state.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); renderSettings(); }
-function removeRecurring(id){ state.recurring=state.recurring.filter(r=>r.id!==id); save("recurring"); renderSettings(); }
+function removeCat(name){ S.categories=S.categories.filter(c=>c.name!==name); save("categories"); renderSettings(); }
 
-// ═══════════════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════════════
-function exportCSV(){
-  const hd="날짜,카테고리,금액,유형,메모,카드,입력자\n";
-  const rows=monthEntries().map(e=>`${e.date},${e.category},${e.amount},${e.type},"${e.note||""}",${e.card||""},${e.addedBy||""}`).join("\n");
-  download("\uFEFF"+hd+rows,`가계부_${state.curMonth}.csv`,"text/csv");
-}
-function exportJSON(){
-  download(JSON.stringify({entries:state.entries,categories:state.categories,cards:state.cards,budgets:state.budgets,recurring:state.recurring},null,2),`가계부백업_${today()}.json`,"application/json");
-}
-function download(content,filename,type){
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([content],{type}));
-  a.download=filename; a.click();
-}
-
-// ═══════════════════════════════════════════
-// APPS SCRIPT SYNC
-// ═══════════════════════════════════════════
-let syncTimer=null;
-// 시트에 이미 push된 id 추적 (중복 방지)
-const pushedIds = new Set(LS.get("mm_pushed_ids", []));
-function savePushedIds(){ LS.set("mm_pushed_ids", [...pushedIds]); }
-
-function startSync(){
-  if(syncTimer) clearInterval(syncTimer);
-  pullFromScript();
-  syncTimer=setInterval(pullFromScript,30000);
-}
-
-async function pullFromScript(){
-  if(!state.scriptUrl) return;
-  state.syncStatus="syncing"; renderShare();
-
-  // CORS 우회: JSONP 방식 사용
-  try {
-    const data = await new Promise((resolve, reject) => {
-      const callbackName = "gsCallback_" + Date.now();
-      const script = document.createElement("script");
-      const timeout = setTimeout(() => {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        reject(new Error("timeout"));
-      }, 10000);
-      window[callbackName] = function(d) {
-        clearTimeout(timeout);
-        delete window[callbackName];
-        document.body.removeChild(script);
-        resolve(d);
-      };
-      script.src = state.scriptUrl + "?callback=" + callbackName + "&t=" + Date.now();
-      script.onerror = () => { clearTimeout(timeout); reject(new Error("script error")); };
-      document.body.appendChild(script);
-    });
-
-    if(!data || !data.data){ state.syncStatus="err"; renderShare(); return; }
-    const remoteMap={};
-    data.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
-    const localMap={};
-    state.entries.forEach(e=>{ localMap[e.id]=e; });
-    const merged=Object.values({...remoteMap,...localMap});
-    data.data.forEach(r=>{ if(r.id) pushedIds.add(r.id); });
-    savePushedIds();
-    state.entries=merged;
-    save("entries");
-    render();
-    state.syncStatus="ok"; renderShare();
-  } catch(err){
-    console.error("Sync error:", err);
-    state.syncStatus="err"; renderShare();
-  }
-}
-
-async function pushToSheets(list){
-  if(!state.scriptUrl) return;
-  // 이미 push된 것은 제외
-  const toSend=list.filter(e=>!pushedIds.has(e.id));
-  if(!toSend.length) return;
-  try {
-    await fetch(state.scriptUrl,{
-      method:"POST",
-      mode:"no-cors",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"add", entries:toSend})
-    });
-    // push 성공으로 간주하고 id 기록
-    toSend.forEach(e=>pushedIds.add(e.id));
-    savePushedIds();
-  } catch{}
-}
-
-// ═══════════════════════════════════════════
-// STATS TAB
-// ═══════════════════════════════════════════
-let statsView = "month";
-let statsYear = new Date().getFullYear();
+// ─── 통계 ───────────────────────────────────
+let statsView="month", statsYear=new Date().getFullYear(), statsBarChart=null;
 
 function setStatsView(v){
-  statsView = v;
-  document.getElementById("statsViewMonth").style.background = v==="month"?"var(--dark)":"var(--line)";
-  document.getElementById("statsViewMonth").style.color = v==="month"?"#fff":"var(--mid)";
-  document.getElementById("statsViewYear").style.background = v==="year"?"var(--dark)":"var(--line)";
-  document.getElementById("statsViewYear").style.color = v==="year"?"#fff":"var(--mid)";
-  document.getElementById("statsMonthView").style.display = v==="month"?"block":"none";
-  document.getElementById("statsYearView").style.display = v==="year"?"block":"none";
+  statsView=v;
+  document.getElementById("statsViewMonth").style.cssText=`background:${v==="month"?"var(--dark)":"var(--line)"};color:${v==="month"?"#fff":"var(--mid)"};border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;`;
+  document.getElementById("statsViewYear").style.cssText=`background:${v==="year"?"var(--dark)":"var(--line)"};color:${v==="year"?"#fff":"var(--mid)"};border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;border:none;cursor:pointer;`;
+  document.getElementById("statsMonthView").style.display=v==="month"?"block":"none";
+  document.getElementById("statsYearView").style.display=v==="year"?"block":"none";
   renderStats();
 }
-
-function changeStatsYear(dir){
-  statsYear += dir;
-  renderStats();
-}
-
-function renderStats(){
-  if(statsView==="month") renderStatsMonth();
-  else renderStatsYear();
-}
+function changeStatsYear(dir){ statsYear+=dir; renderStats(); }
+function renderStats(){ statsView==="month"?renderStatsMonth():renderStatsYear(); }
 
 function renderStatsMonth(){
   const inc=totalInc(), exp=totalExp(), bal=inc-exp;
-  document.getElementById("statsMonthTitle").textContent = ymLbl(state.curMonth) + " 요약";
-  document.getElementById("statsMonthInc").textContent = won(inc);
-  document.getElementById("statsMonthExp").textContent = won(exp);
-  const balEl=document.getElementById("statsMonthBal");
-  balEl.textContent = won(Math.abs(bal));
-  balEl.style.color = bal>=0?"var(--blue)":"var(--red)";
-
-  // 카테고리별 지출 목록
-  const ct = catTotals();
-  const sorted = Object.entries(ct).sort((a,b)=>b[1]-a[1]);
-  const total = totalExp();
-  document.getElementById("statsCatList").innerHTML = sorted.length===0
-    ? `<div style="text-align:center;padding:20px;color:var(--dim);font-size:13px;">지출 내역이 없어요</div>`
-    : sorted.map(([name,amt])=>{
-        const cat=getCat(name);
-        const pct=total>0?Math.round(amt/total*100):0;
+  document.getElementById("statsMonthTitle").textContent=ymLbl(S.curMonth)+" 요약";
+  document.getElementById("statsMonthInc").textContent=won(inc);
+  document.getElementById("statsMonthExp").textContent=won(exp);
+  const el=document.getElementById("statsMonthBal");
+  el.textContent=won(Math.abs(bal)); el.style.color=bal>=0?"var(--blue)":"var(--red)";
+  const ct=catTotals(), sorted=Object.entries(ct).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("statsCatList").innerHTML=sorted.length
+    ? sorted.map(([name,amt])=>{
+        const cat=getCat(name), pct=exp>0?Math.round(amt/exp*100):0;
         return `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
             <span style="font-size:13px;">${cat.icon} ${name}</span>
             <span style="font-size:13px;font-weight:700;">${won(amt)} <span style="color:var(--dim);font-weight:400;">${pct}%</span></span>
           </div>
-          <div style="background:var(--f2);border-radius:4px;height:6px;">
-            <div style="width:${pct}%;height:100%;border-radius:4px;background:${cat.color};transition:width 0.4s;"></div>
-          </div>
+          <div style="background:var(--f2);border-radius:4px;height:6px;"><div style="width:${pct}%;height:100%;border-radius:4px;background:${cat.color};"></div></div>
         </div>`;
-      }).join("");
+      }).join("")
+    : `<div style="text-align:center;padding:20px;color:var(--dim);font-size:13px;">지출 내역이 없어요</div>`;
 }
 
-let statsBarChart=null;
 function renderStatsYear(){
-  document.getElementById("statsYearTitle").textContent = statsYear+"년";
+  document.getElementById("statsYearTitle").textContent=statsYear+"년";
   const months=Array.from({length:12},(_,i)=>`${statsYear}-${String(i+1).padStart(2,"0")}`);
-  const data=months.map(m=>({
-    label:Number(m.split("-")[1])+"월",
-    inc:state.entries.filter(e=>ym(e.date)===m&&e.type==="수입").reduce((s,e)=>s+Number(e.amount),0),
-    exp:state.entries.filter(e=>ym(e.date)===m&&e.type==="지출").reduce((s,e)=>s+Number(e.amount),0),
-  }));
-  const yearInc=data.reduce((s,d)=>s+d.inc,0);
-  const yearExp=data.reduce((s,d)=>s+d.exp,0);
-  const yearBal=yearInc-yearExp;
-  document.getElementById("statsYearInc").textContent=won(yearInc);
-  document.getElementById("statsYearExp").textContent=won(yearExp);
+  const data=months.map(m=>({label:Number(m.split("-")[1])+"월",inc:totalInc(m),exp:totalExp(m)}));
+  const yInc=data.reduce((s,d)=>s+d.inc,0), yExp=data.reduce((s,d)=>s+d.exp,0), yBal=yInc-yExp;
+  document.getElementById("statsYearInc").textContent=won(yInc);
+  document.getElementById("statsYearExp").textContent=won(yExp);
   const yb=document.getElementById("statsYearBal");
-  yb.textContent=won(Math.abs(yearBal));
-  yb.style.color=yearBal>=0?"var(--blue)":"var(--red)";
-
-  // 바 차트
+  yb.textContent=won(Math.abs(yBal)); yb.style.color=yBal>=0?"var(--blue)":"var(--red)";
   const ctx=document.getElementById("statsBarChart").getContext("2d");
   if(statsBarChart) statsBarChart.destroy();
   statsBarChart=new Chart(ctx,{
     type:"bar",
-    data:{
-      labels:data.map(d=>d.label),
-      datasets:[
-        {label:"수입",data:data.map(d=>d.inc),backgroundColor:"#30D158",borderRadius:4,maxBarThickness:16},
-        {label:"지출",data:data.map(d=>d.exp),backgroundColor:"#FF453A",borderRadius:4,maxBarThickness:16},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{font:{size:10},color:"#636366"}}},
-      scales:{x:{grid:{display:false},ticks:{color:"#636366",font:{size:9}}},y:{display:false}},
-    }
+    data:{labels:data.map(d=>d.label),datasets:[
+      {label:"수입",data:data.map(d=>d.inc),backgroundColor:"#30D158",borderRadius:4,maxBarThickness:16},
+      {label:"지출",data:data.map(d=>d.exp),backgroundColor:"#FF453A",borderRadius:4,maxBarThickness:16},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:"#636366"}}},scales:{x:{grid:{display:false},ticks:{color:"#636366",font:{size:9}}},y:{display:false}}}
   });
-
-  // 월별 상세 목록
-  document.getElementById("statsYearMonthList").innerHTML=data.map((d,i)=>{
+  document.getElementById("statsYearMonthList").innerHTML=data.map(d=>{
     const bal=d.inc-d.exp;
-    const hasData=d.inc>0||d.exp>0;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);${!hasData?"opacity:0.35":""}">
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);${d.inc===0&&d.exp===0?"opacity:0.3":""}">
       <span style="font-size:13px;font-weight:600;color:var(--mid);">${d.label}</span>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--dim);">수입 <span style="color:var(--green);font-weight:700;">${won(d.inc)}</span> · 지출 <span style="color:var(--red);font-weight:700;">${won(d.exp)}</span></div>
@@ -1271,84 +772,120 @@ function renderStatsYear(){
   }).join("");
 }
 
-// ═══════════════════════════════════════════
-// RECURRING TAB
-// ═══════════════════════════════════════════
+// ─── 고정지출 ───────────────────────────────
 function renderRecurringTab(){
-  // 카테고리 select 채우기
-  const sel=document.getElementById("recTabCat");
-  sel.innerHTML=state.categories.filter(c=>c.name!=="수입").map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join("");
-
-  const list=state.recurring;
+  document.getElementById("recTabCat").innerHTML=S.categories.filter(c=>c.name!=="수입").map(c=>`<option value="${c.name}">${c.icon} ${c.name}</option>`).join("");
+  const list=S.recurring;
+  document.getElementById("recurringEmpty").style.display=list.length?"none":"block";
   const container=document.getElementById("recurringTabList");
-  const empty=document.getElementById("recurringEmpty");
-  if(!list.length){ container.innerHTML=""; empty.style.display="block"; return; }
-  empty.style.display="none";
+  if(!list.length){ container.innerHTML=""; return; }
   const totalAmt=list.filter(r=>r.active).reduce((s,r)=>s+r.amount,0);
-  container.innerHTML=`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;">활성 고정지출 합계 <strong style="color:var(--red);">${won(totalAmt)}/월</strong></div>`
-  + list.map(r=>{
-    const cat=getCat(r.category);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
-      <div style="width:36px;height:36px;border-radius:10px;background:${cat.color}1A;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${cat.icon}</div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;">${r.name}</div>
-        <div style="font-size:11px;color:var(--dim);">매월 ${r.dayOfMonth}일 · ${r.category}</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:14px;font-weight:800;color:var(--red);">-${Number(r.amount).toLocaleString()}</div>
-        <div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end;">
-          <button onclick="toggleRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:${r.active?"#30D15818":"#F2F2F7"};color:${r.active?"var(--green)":"#8E8E93"};">${r.active?"ON":"OFF"}</button>
-          <button onclick="removeRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:#FF453A1A;color:var(--red);">삭제</button>
+  container.innerHTML=`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;">활성 합계 <strong style="color:var(--red);">${won(totalAmt)}/월</strong></div>`
+    +list.map(r=>{
+      const cat=getCat(r.category);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
+        <div style="width:36px;height:36px;border-radius:10px;background:${cat.color}1A;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${cat.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;">${r.name}</div>
+          <div style="font-size:11px;color:var(--dim);">매월 ${r.dayOfMonth}일 · ${r.category}</div>
         </div>
-      </div>
-    </div>`;
-  }).join("");
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:800;color:var(--red);">-${Number(r.amount).toLocaleString()}</div>
+          <div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end;">
+            <button onclick="toggleRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:${r.active?"#30D15818":"#F2F2F7"};color:${r.active?"var(--green)":"#8E8E93"};">${r.active?"ON":"OFF"}</button>
+            <button onclick="removeRecurringTab('${r.id}')" style="font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700;border:none;cursor:pointer;background:#FF453A1A;color:var(--red);">삭제</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
 }
-
 function addRecurringTab(){
   const name=document.getElementById("recTabName").value.trim();
   const amount=Number(document.getElementById("recTabAmount").value);
   const category=document.getElementById("recTabCat").value;
-  const dayOfMonth=Number(document.getElementById("recTabDay").value)||1;
   if(!name){ showToast("이름을 입력해주세요",false); return; }
   if(!amount){ showToast("금액을 입력해주세요",false); return; }
-  if(!category){ showToast("카테고리를 선택해주세요",false); return; }
-  state.recurring.push({id:uid(),name,category,amount,dayOfMonth,card:"",active:true});
+  S.recurring.push({id:uid(),name,category,amount,dayOfMonth:Number(document.getElementById("recTabDay").value)||1,card:"",active:true});
   save("recurring");
   document.getElementById("recTabName").value="";
   document.getElementById("recTabAmount").value="";
   document.getElementById("recTabDay").value="1";
-  renderRecurringTab();
-  showToast("고정지출 추가됨 ✅");
+  renderRecurringTab(); showToast("고정지출 추가됨 ✅");
 }
+function toggleRecurringTab(id){ S.recurring=S.recurring.map(r=>r.id===id?{...r,active:!r.active}:r); save("recurring"); renderRecurringTab(); }
+function removeRecurringTab(id){ if(!confirm("삭제할까요?")) return; S.recurring=S.recurring.filter(r=>r.id!==id); save("recurring"); renderRecurringTab(); }
 
-function toggleRecurringTab(id){
-  state.recurring=state.recurring.map(r=>r.id===id?{...r,active:!r.active}:r);
-  save("recurring"); renderRecurringTab();
-}
-function removeRecurringTab(id){
-  if(!confirm("삭제할까요?")) return;
-  state.recurring=state.recurring.filter(r=>r.id!==id);
-  save("recurring"); renderRecurringTab();
-}
-// ═══════════════════════════════════════════
+// ─── 정기지출 자동등록 ──────────────────────
 function checkRecurring(){
-  const [y,mo]=state.curMonth.split("-");
-  const done=state.entries.filter(e=>e.autoId&&ym(e.date)===state.curMonth).map(e=>e.autoId);
+  const [y,mo]=S.curMonth.split("-");
+  const done=S.entries.filter(e=>e.autoId&&ym(e.date)===S.curMonth).map(e=>e.autoId);
   const day=new Date().getDate();
-  const toAdd=state.recurring.filter(r=>r.active&&r.dayOfMonth<=day&&!done.includes(r.id));
+  const toAdd=S.recurring.filter(r=>r.active&&r.dayOfMonth<=day&&!done.includes(r.id));
   if(!toAdd.length) return;
-  const news=toAdd.map(r=>({
-    id:uid(),autoId:r.id,addedBy:state.settings.userName,
+  addEntries(toAdd.map(r=>({
+    id:uid(), autoId:r.id, addedBy:"자동",
     date:`${y}-${mo}-${String(r.dayOfMonth).padStart(2,"0")}`,
-    category:r.category,amount:r.amount,type:"지출",note:r.name+"(자동)",card:r.card||"",
-  }));
-  addEntries(news);
+    category:r.category, amount:r.amount, type:"지출", note:r.name+"(자동)", card:"",
+  })));
 }
 
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
+// ─── 내보내기 ───────────────────────────────
+function exportCSV(){
+  const rows=monthEntries().map(e=>`${e.date},${e.category},${e.amount},${e.type},"${e.note||""}",${e.card||""},${e.addedBy||""}`);
+  download("\uFEFF날짜,카테고리,금액,유형,메모,카드,입력자\n"+rows.join("\n"),`가계부_${S.curMonth}.csv`,"text/csv");
+}
+function exportJSON(){
+  download(JSON.stringify({entries:S.entries,categories:S.categories,cards:S.cards},null,2),`가계부백업_${today()}.json`,"application/json");
+}
+function download(content,filename,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=filename; a.click();
+}
+
+// ─── 구글 시트 동기화 (JSONP) ───────────────
+let syncTimer=null;
+
+function startSync(){
+  if(syncTimer) clearInterval(syncTimer);
+  if(!S.scriptUrl) return;
+  pullFromSheet();
+  syncTimer=setInterval(pullFromSheet, 30000);
+}
+
+function pullFromSheet(){
+  if(!S.scriptUrl) return;
+  S.syncStatus="syncing"; renderShare();
+  const cbName="gs_"+Date.now();
+  const script=document.createElement("script");
+  const timer=setTimeout(()=>{ cleanup(); S.syncStatus="err"; renderShare(); }, 10000);
+  function cleanup(){ clearTimeout(timer); delete window[cbName]; script.parentNode?.removeChild(script); }
+  window[cbName]=function(data){
+    cleanup();
+    if(!data?.data){ S.syncStatus="err"; renderShare(); return; }
+    // 시트 기준으로 머지 (시트에 없는 로컬 데이터는 유지)
+    const remoteMap={};
+    data.data.forEach(r=>{ if(r.id) remoteMap[r.id]={...r,amount:Number(r.amount)||0}; });
+    const localOnly=S.entries.filter(e=>!remoteMap[e.id]);
+    S.entries=[...Object.values(remoteMap),...localOnly];
+    save("entries"); render();
+    S.syncStatus="ok"; renderShare();
+  };
+  script.onerror=()=>{ cleanup(); S.syncStatus="err"; renderShare(); };
+  script.src=`${S.scriptUrl}?callback=${cbName}&t=${Date.now()}`;
+  document.body.appendChild(script);
+}
+
+function pushToSheets(list){
+  if(!S.scriptUrl||!list.length) return;
+  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"add",entries:list})}).catch(()=>{});
+}
+function deleteFromSheets(id){
+  if(!S.scriptUrl) return;
+  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id})}).catch(()=>{});
+}
+
+// ─── 초기화 ─────────────────────────────────
 checkRecurring();
 render();
 startSync();
