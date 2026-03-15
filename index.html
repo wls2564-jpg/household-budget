@@ -213,7 +213,7 @@ input, select { font-family:inherit; }
     <div style="font-size:12px;color:var(--mid);background:var(--f2);border-radius:14px;padding:12px 14px;margin-bottom:12px;line-height:1.7;">
       • Google Sheets를 공유 DB로 사용<br>• 두 분 모두 같은 Apps Script URL 입력<br>• 30초마다 자동 동기화
     </div>
-    <div class="sync-status" id="syncStatus" style="background:var(--f2);">
+    <div class="sync-status" id="syncStatus" style="background:var(--f2);cursor:pointer;" onclick="pullFromSheet();pullRecurring();showToast('재연결 시도 중...');" title="클릭해서 재연결">
       <span style="font-size:18px;">📡</span>
       <span style="font-size:13px;font-weight:600;color:var(--mid);">연결 안 됨</span>
     </div>
@@ -263,6 +263,12 @@ input, select { font-family:inherit; }
       <button class="export-btn" onclick="exportJSON()" style="background:#0A84FF;">JSON 백업</button>
     </div>
     <div style="font-size:11px;color:var(--dim);margin-top:8px;">CSV: 이번달 내역 · JSON: 전체 백업</div>
+  </div>
+  <div class="card" style="border:1.5px solid #FF9500;">
+    <div class="card-title">🔧 고정지출 이름 복구</div>
+    <div style="font-size:12px;color:var(--mid);margin-bottom:10px;">시트에서 name이 비어있는 고정지출 항목을 내역 메모에서 자동으로 복구해요.</div>
+    <button onclick="repairRecurringNames()" style="width:100%;background:#FF9500;border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;">고정지출 이름 복구 실행</button>
+    <div id="repairResult" style="font-size:12px;margin-top:8px;color:var(--mid);"></div>
   </div>
 </div>
 
@@ -870,6 +876,34 @@ function checkRecurring(){
 }
 
 // ─── 내보내기 ───────────────────────────────
+// ─── 고정지출 이름 복구 ─────────────────────
+function repairRecurringNames(){
+  var fixed=0;
+  S.recurring=S.recurring.map(function(r){
+    if(r.name&&r.name!=="(이름없음)") return r;
+    // autoId가 r.id인 entries에서 note 추출
+    var match=S.entries.find(function(e){ return e.autoId===r.id; });
+    if(match&&match.note){
+      var name=match.note.replace(/\(자동\)$/,"").trim();
+      fixed++;
+      return Object.assign({},r,{name:name});
+    }
+    return r;
+  });
+  save("recurring");
+  pushRecurring();
+  renderRecurringTab();
+  var el=document.getElementById("repairResult");
+  if(fixed>0){
+    el.style.color="var(--green)";
+    el.textContent="✅ "+fixed+"개 항목 복구 완료! 시트에 저장 중...";
+    showToast(fixed+"개 항목 복구됐어요 ✅");
+  } else {
+    el.style.color="var(--mid)";
+    el.textContent="복구할 항목이 없어요. (이미 이름이 있거나 매칭 내역 없음)";
+  }
+}
+
 function exportCSV(){
   var rows=monthEntries().map(function(e){return e.date+","+e.category+","+e.amount+","+e.type+',"'+(e.note||"")+'",'+( e.card||"")+","+(e.addedBy||"");});
   download("\uFEFF날짜,카테고리,금액,유형,메모,카드,입력자\n"+rows.join("\n"),"가계부_"+S.curMonth+".csv","text/csv");
@@ -897,7 +931,7 @@ function startSync(){
 function jsonp(url, onSuccess, onError){
   var cbName="gs_"+Date.now();
   var script=document.createElement("script");
-  var timer=setTimeout(function(){ cleanup(); if(onError) onError(); },10000);
+  var timer=setTimeout(function(){ cleanup(); if(onError) onError(); },20000);
   function cleanup(){ clearTimeout(timer); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
   window[cbName]=function(data){ cleanup(); onSuccess(data); };
   script.onerror=function(){ cleanup(); if(onError) onError(); };
@@ -906,7 +940,7 @@ function jsonp(url, onSuccess, onError){
   document.body.appendChild(script);
 }
 
-function pullFromSheet(){
+function pullFromSheet(retry){
   if(!S.scriptUrl) return;
   S.syncStatus="syncing"; renderShare();
   jsonp(S.scriptUrl+"?action=entries&t="+Date.now(),function(data){
@@ -918,7 +952,12 @@ function pullFromSheet(){
     save("entries"); render();
     S.syncStatus="ok"; renderShare();
   },function(){
-    S.syncStatus="err"; renderShare();
+    if(!retry){
+      // 1회 자동 재시도 (5초 후)
+      setTimeout(function(){ pullFromSheet(true); }, 5000);
+    } else {
+      S.syncStatus="err"; renderShare();
+    }
   });
 }
 
@@ -930,7 +969,7 @@ function pullRecurring(){
       return;
     }
     S.recurring=data.data.map(function(r){
-      return Object.assign({},r,{amount:Number(r.amount)||0,dayOfMonth:Number(r.dayOfMonth)||1,active:r.active==="true"||r.active===true});
+      return Object.assign({},r,{name:r.name||r["항목명"]||r["이름"]||"(이름없음)",category:r.category||r["카테고리"]||"기타",amount:Number(r.amount||r["금액"])||0,dayOfMonth:Number(r.dayOfMonth||r["날짜"]||r["일"])||1,active:r.active==="true"||r.active===true});
     });
     save("recurring");
     var tabEl=document.querySelector('.tab-btn.active');
