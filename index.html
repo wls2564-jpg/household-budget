@@ -305,8 +305,8 @@ input, select { font-family:inherit; }
       <button class="sheet-close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="type-row">
-      <button class="type-btn" id="editTypeExp" onclick="setEditType('지출')" style="background:var(--dark);color:#fff;">📤 지출</button>
-      <button class="type-btn" id="editTypeInc" onclick="setEditType('수입')" style="background:#F2F2F7;color:var(--mid);">📥 수입</button>
+      <button class="type-btn" id="editTypeExp" onclick="setEditType('지출',true)" style="background:var(--dark);color:#fff;">📤 지출</button>
+      <button class="type-btn" id="editTypeInc" onclick="setEditType('수입',true)" style="background:#F2F2F7;color:var(--mid);">📥 수입</button>
     </div>
     <div class="form-label">카테고리</div>
     <div class="chip-row" id="editCatChips"></div>
@@ -639,15 +639,15 @@ function openEditModal(id){
   document.getElementById("editAmount").value=e.amount;
   document.getElementById("editNote").value=e.note||"";
   document.getElementById("editDate").value=e.date;
-  setEditType(e.type);
+  setEditType(e.type, false);
   document.getElementById("editModal").classList.add("open");
 }
-function setEditType(t){
+function setEditType(t,resetCat){
   S.editType=t;
   var isExp=t==="지출";
   document.getElementById("editTypeExp").style.cssText="background:"+(isExp?"var(--dark)":"#F2F2F7")+";color:"+(isExp?"#fff":"var(--mid)");
   document.getElementById("editTypeInc").style.cssText="background:"+(!isExp?"var(--dark)":"#F2F2F7")+";color:"+(!isExp?"#fff":"var(--mid)");
-  S.editCat=isExp?(S.categories.find(function(c){return c.name!=="수입";})||{name:"식비"}).name:"수입";
+  if(resetCat) S.editCat=isExp?(S.categories.find(function(c){return c.name!=="수입";})||{name:"식비"}).name:"수입";
   document.getElementById("editCardSection").style.display=isExp?"block":"none";
   renderEditCats();
 }
@@ -820,11 +820,21 @@ function addRecurringTab(){
   if(!name){ showToast("이름을 입력해주세요",false); return; }
   if(!amount){ showToast("금액을 입력해주세요",false); return; }
   var dayOfMonth=Number(document.getElementById("recTabDay").value)||1;
-  S.recurring.push({id:uid(),name:name,category:category,amount:amount,dayOfMonth:dayOfMonth,card:"",active:true});
+  var newRec={id:uid(),name:name,category:category,amount:amount,dayOfMonth:dayOfMonth,card:"",active:true};
+  S.recurring.push(newRec);
   save("recurring");
   pushRecurring();
+  // 이번 달 내역 즉시 생성 (날짜 경과 여부와 무관하게 바로 적용)
+  var already=S.entries.some(function(e){return e.autoId===newRec.id&&ym(e.date)===S.curMonth;});
+  if(!already){
+    var p=S.curMonth.split("-");
+    var dateStr=p[0]+"-"+p[1]+"-"+String(dayOfMonth).padStart(2,"0");
+    var newEntry={id:uid(),autoId:newRec.id,addedBy:"자동",date:dateStr,category:category,amount:amount,type:"지출",note:name+"(자동)",card:""};
+    S.entries=S.entries.concat([newEntry]);
+    save("entries");
+    pushToSheets([newEntry]);
+  }
   LS.set("mm_rec_checked","");
-  checkRecurring();
   document.getElementById("recTabName").value="";
   document.getElementById("recTabAmount").value="";
   document.getElementById("recTabDay").value="1";
