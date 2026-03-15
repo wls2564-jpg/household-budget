@@ -648,8 +648,10 @@ function renderEditCats(){
 function submitEdit(){
   const amount=Number(document.getElementById("editAmount").value);
   if(!amount||!S.editingId){ showToast("금액을 입력해주세요",false); return; }
+  const original=S.entries.find(e=>e.id===S.editingId);
+  if(!original) return;
   const updated={
-    ...S.entries.find(e=>e.id===S.editingId),
+    ...original,
     type:S.editType, category:S.editCat, amount,
     note:document.getElementById("editNote").value,
     date:document.getElementById("editDate").value,
@@ -657,8 +659,9 @@ function submitEdit(){
   };
   S.entries=S.entries.map(e=>e.id===S.editingId?updated:e);
   save("entries");
+  // 시트: 기존 삭제 후 새로 추가
   deleteFromSheets(S.editingId);
-  setTimeout(()=>pushToSheets([updated]),500);
+  pushToSheets([updated]);
   closeModal("editModal");
   render();
   showToast("수정됐어요 ✅");
@@ -817,16 +820,26 @@ function removeRecurringTab(id){ if(!confirm("삭제할까요?")) return; S.recu
 
 // ─── 정기지출 자동등록 ──────────────────────
 function checkRecurring(){
+  // 오늘 이미 체크했으면 스킵 (새로고침해도 중복 안 쌓임)
+  const todayStr=today();
+  if(LS.get("mm_rec_checked","")===todayStr) return;
+
   const [y,mo]=S.curMonth.split("-");
-  const done=S.entries.filter(e=>e.autoId&&ym(e.date)===S.curMonth).map(e=>e.autoId);
+  // 이번달에 이미 자동 추가된 autoId 목록
+  const done=new Set(S.entries.filter(e=>e.autoId&&ym(e.date)===S.curMonth).map(e=>e.autoId));
   const day=new Date().getDate();
-  const toAdd=S.recurring.filter(r=>r.active&&r.dayOfMonth<=day&&!done.includes(r.id));
-  if(!toAdd.length) return;
-  addEntries(toAdd.map(r=>({
+  const toAdd=S.recurring.filter(r=>r.active&&r.dayOfMonth<=day&&!done.has(r.id));
+  if(!toAdd.length){ LS.set("mm_rec_checked",todayStr); return; }
+
+  const news=toAdd.map(r=>({
     id:uid(), autoId:r.id, addedBy:"자동",
     date:`${y}-${mo}-${String(r.dayOfMonth).padStart(2,"0")}`,
     category:r.category, amount:r.amount, type:"지출", note:r.name+"(자동)", card:"",
-  })));
+  }));
+  // 로컬에만 저장, 시트 push 안 함 (자동항목은 각자 기기에서만)
+  S.entries=[...S.entries,...news];
+  save("entries");
+  LS.set("mm_rec_checked",todayStr);
 }
 
 // ─── 내보내기 ───────────────────────────────
