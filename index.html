@@ -975,8 +975,18 @@ function pullRecurring(){
       if(S.recurring.length>0) pushRecurring();
       return;
     }
-    S.recurring=data.data.map(function(r){
-      return Object.assign({},r,{name:r.name||r["항목명"]||r["이름"]||"(이름없음)",category:r.category||r["카테고리"]||"기타",amount:Number(r.amount||r["금액"])||0,dayOfMonth:Number(r.dayOfMonth||r["날짜"]||r["일"])||1,active:r.active==="true"||r.active===true});
+    // 이름 없는 데이터 필터링 - 유효한 항목만 허용
+    var validData=data.data.filter(function(r){
+      var nm=String(r.name||r["항목명"]||r["이름"]||"").trim();
+      return nm&&nm!=="(이름없음)";
+    });
+    // 유효 데이터가 없으면 로컬 유지하고 push
+    if(!validData.length){
+      if(S.recurring.length>0) pushRecurring();
+      return;
+    }
+    S.recurring=validData.map(function(r){
+      return Object.assign({},r,{name:r.name||r["항목명"]||r["이름"]||"",category:r.category||r["카테고리"]||"기타",amount:Number(r.amount||r["금액"])||0,dayOfMonth:Number(r.dayOfMonth||r["날짜"]||r["일"])||1,active:r.active==="true"||r.active===true});
     });
     save("recurring");
     var tabEl=document.querySelector('.tab-btn.active');
