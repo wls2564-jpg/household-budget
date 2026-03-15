@@ -388,7 +388,10 @@ function save(key){
 
 // ─── 유틸 ───────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function today(){ return new Date().toISOString().slice(0,10); }
+function today(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function ym(d){ const dt=new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`; }
 function won(n){ return Number(n||0).toLocaleString("ko-KR")+"원"; }
 function ymLbl(s){ const [y,m]=s.split("-"); return `${y}년 ${Number(m)}월`; }
