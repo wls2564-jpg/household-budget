@@ -271,6 +271,12 @@ input, select { font-family:inherit; }
     <button onclick="repairRecurringNames()" style="width:100%;background:#FF9500;border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;">고정지출 이름 복구 실행</button>
     <div id="repairResult" style="font-size:12px;margin-top:8px;color:var(--mid);"></div>
   </div>
+  <div class="card" style="border:1.5px solid var(--red);">
+    <div class="card-title">🧹 고정지출 중복 내역 정리</div>
+    <div style="font-size:12px;color:var(--mid);margin-bottom:10px;">같은 달에 같은 고정지출이 여러 번 등록된 중복 내역을 찾아서 정리해요.</div>
+    <button onclick="cleanDuplicateRecurring()" style="width:100%;background:var(--red);border-radius:12px;padding:11px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;">중복 내역 정리 실행</button>
+    <div id="cleanResult" style="font-size:12px;margin-top:8px;color:var(--mid);"></div>
+  </div>
 </div>
 
 <!-- 추가 모달 -->
@@ -375,28 +381,34 @@ function normalizeDate(d){
   var s=String(d).trim();
   // 이미 YYYY-MM-DD 형식이면 그대로 반환
   if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // ISO 형식 (T 포함)
-  if(s.includes("T")) return s.slice(0,10);
+  // [핵심 FIX] ISO 형식 (T 포함) — slice가 아닌 Date 파싱 후 로컬 시간 추출
+  // 구글 시트가 "2025-03-16T15:00:00.000Z" (KST 3/17 자정의 UTC 표현)를 보내면
+  // slice(0,10)하면 "2025-03-16"이 되어 하루가 밀림!
+  // → Date 객체로 파싱 후 로컬 시간 기준으로 날짜 추출해야 정확함
+  if(s.includes("T")){
+    var dt=new Date(s);
+    if(!isNaN(dt.getTime())){
+      return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+    }
+    return s.slice(0,10);
+  }
   // 구글 시트 날짜 직렬번호 변환 (1899-12-30 기준)
   if(/^\d+(\.\d+)?$/.test(s)){
     var serial=Math.floor(Number(s));
     if(serial>40000 && serial<60000){
-      // 구글 시트 epoch: 1899-12-30
       var epoch=new Date(1899,11,30);
       epoch.setDate(epoch.getDate()+serial);
       return epoch.getFullYear()+"-"+String(epoch.getMonth()+1).padStart(2,"0")+"-"+String(epoch.getDate()).padStart(2,"0");
     }
     return today();
   }
-  // [FIX] new Date() 파싱 시 UTC 시차 문제 방지
-  // "YYYY/MM/DD" 또는 "MM/DD/YYYY" 등 슬래시 형식 처리
+  // "YYYY/MM/DD" 또는 "YYYY.MM.DD" 형식
   var slashMatch=s.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);
   if(slashMatch) return slashMatch[1]+"-"+slashMatch[2].padStart(2,"0")+"-"+slashMatch[3].padStart(2,"0");
-  // "Mar 17, 2025" 등 영문 날짜 → 로컬 시간 기준으로 파싱
-  var dt=new Date(s);
-  if(!isNaN(dt.getTime())){
-    // UTC가 아닌 로컬 시간 기준으로 추출
-    return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+  // 기타 날짜 문자열 → 로컬 시간 기준으로 파싱
+  var dt2=new Date(s);
+  if(!isNaN(dt2.getTime())){
+    return dt2.getFullYear()+"-"+String(dt2.getMonth()+1).padStart(2,"0")+"-"+String(dt2.getDate()).padStart(2,"0");
   }
   return today();
 }
@@ -920,10 +932,11 @@ function addRecurringTab(){
   save("recurring");
   pushRecurring();
 
-  // 이번 달 내역 즉시 생성
-  var already=S.entries.some(function(e){return e.autoId===newRec.id&&ym(e.date)===S.curMonth;});
+  // 실제 이번 달(오늘 기준) 내역 즉시 생성
+  var realMonth=ym(today());
+  var already=S.entries.some(function(e){return e.autoId===newRec.id&&ym(e.date)===realMonth;});
   if(!already){
-    var p=S.curMonth.split("-");
+    var p=realMonth.split("-");
     var dateStr=p[0]+"-"+p[1]+"-"+String(dayOfMonth).padStart(2,"0");
     var newEntry={id:uid(),autoId:newRec.id,addedBy:"자동",date:dateStr,category:category,amount:amount,type:"지출",note:name+"(자동)",card:""};
     S.entries.push(newEntry);
@@ -996,12 +1009,13 @@ function submitEditRecurring(){
   save("recurring");
   pushRecurring();
 
-  // 이번 달 자동 생성된 내역도 함께 업데이트
+  // 실제 이번 달(오늘 기준) 자동 생성된 내역도 함께 업데이트
+  var realMonth=ym(today());
   var updated=false;
   S.entries=S.entries.map(function(e){
-    if(e.autoId===S.editingRecId && ym(e.date)===S.curMonth){
+    if(e.autoId===S.editingRecId && ym(e.date)===realMonth){
       updated=true;
-      var p=S.curMonth.split("-");
+      var p=realMonth.split("-");
       var newDate=p[0]+"-"+p[1]+"-"+String(dayOfMonth).padStart(2,"0");
       var updatedEntry=Object.assign({},e,{
         category:category, amount:amount, note:name+"(자동)", date:newDate
@@ -1025,8 +1039,10 @@ function submitEditRecurring(){
 function checkRecurring(){
   var todayStr=today();
   if(LS.get("mm_rec_checked","")===todayStr) return;
-  var p=S.curMonth.split("-");
-  var done=new Set(S.entries.filter(function(e){return e.autoId&&ym(e.date)===S.curMonth;}).map(function(e){return e.autoId;}));
+  // [FIX] S.curMonth가 아닌 실제 오늘의 연-월 기준으로 체크
+  var realMonth=ym(todayStr);
+  var p=realMonth.split("-");
+  var done=new Set(S.entries.filter(function(e){return e.autoId&&ym(e.date)===realMonth;}).map(function(e){return e.autoId;}));
   var day=new Date().getDate();
   var toAdd=S.recurring.filter(function(r){return r.active&&r.dayOfMonth<=day&&!done.has(r.id);});
   if(!toAdd.length){ LS.set("mm_rec_checked",todayStr); return; }
@@ -1072,6 +1088,39 @@ function repairRecurringNames(){
   }
 }
 
+// ─── 고정지출 중복 내역 정리 ────────────────
+function cleanDuplicateRecurring(){
+  // autoId가 있는 자동 생성 내역에서, 같은 달+같은 autoId 조합의 중복을 찾아 제거
+  var seen={};
+  var toRemove=[];
+  // 날짜 내림차순 정렬 → 최신 것을 유지하고 나머지 제거
+  var autoEntries=S.entries
+    .filter(function(e){return e.autoId;})
+    .sort(function(a,b){return b.date.localeCompare(a.date);});
+  autoEntries.forEach(function(e){
+    var key=ym(e.date)+"_"+e.autoId;
+    if(seen[key]){
+      toRemove.push(e.id);
+    } else {
+      seen[key]=true;
+    }
+  });
+  if(!toRemove.length){
+    var el=document.getElementById("cleanResult");
+    el.style.color="var(--mid)";
+    el.textContent="중복 내역이 없어요 👍";
+    return;
+  }
+  if(!confirm(toRemove.length+"개의 중복 고정지출 내역을 삭제할까요?")) return;
+  toRemove.forEach(function(id){ deleteFromSheets(id); });
+  S.entries=S.entries.filter(function(e){return toRemove.indexOf(e.id)<0;});
+  save("entries"); render();
+  var el=document.getElementById("cleanResult");
+  el.style.color="var(--green)";
+  el.textContent="✅ "+toRemove.length+"개 중복 내역 삭제 완료!";
+  showToast(toRemove.length+"개 중복 정리됨 ✅");
+}
+
 function exportCSV(){
   var rows=monthEntries().map(function(e){return e.date+","+e.category+","+e.amount+","+e.type+',"'+(e.note||"")+'","'+(e.card||"")+'","'+(e.addedBy||"")+'"';});
   download("\uFEFF날짜,카테고리,금액,유형,메모,카드,입력자\n"+rows.join("\n"),"가계부_"+S.curMonth+".csv","text/csv");
@@ -1111,7 +1160,7 @@ function jsonp(url, onSuccess, onError){
 function pullFromSheet(retry){
   if(!S.scriptUrl) return;
   S.syncStatus="syncing"; renderShare();
-  // [FIX] 동기화 전 로컬 날짜 맵 저장 (시트의 잘못된 날짜로 덮어쓰기 방지)
+  // 동기화 전 로컬 날짜 맵 저장
   var localDateMap={};
   S.entries.forEach(function(e){ if(e.id && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) localDateMap[e.id]=e.date; });
   jsonp(S.scriptUrl+"?action=entries&t="+Date.now(),function(data){
@@ -1119,14 +1168,12 @@ function pullFromSheet(retry){
     var remoteMap={};
     data.data.forEach(function(r){
       if(!r.id) return;
-      var normalized=normalizeDate(r.date);
-      // 로컬에 이미 정확한 YYYY-MM-DD 날짜가 있고, 시트에서 온 날짜가 직렬번호였다면 로컬 날짜 우선
+      // date_str 필드가 있으면 우선 사용 (시트의 Date 자동변환 영향 안 받음)
+      var dateSource=r.date_str||r.date;
+      var normalized=normalizeDate(dateSource);
+      // 로컬에 정확한 날짜가 있고, 시트 날짜와 다르면 → 로컬 우선
       if(localDateMap[r.id] && normalized!==localDateMap[r.id]){
-        var rawDate=String(r.date||"").trim();
-        // 시트에서 온 값이 YYYY-MM-DD가 아닌 경우(직렬번호, 변환 오류 등) 로컬 날짜 유지
-        if(!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
-          normalized=localDateMap[r.id];
-        }
+        normalized=localDateMap[r.id];
       }
       remoteMap[r.id]=Object.assign({},r,{date:normalized,amount:Number(r.amount)||0});
     });
@@ -1174,7 +1221,11 @@ function pushRecurring(){
 }
 function pushToSheets(list){
   if(!S.scriptUrl||!list.length) return;
-  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"add",entries:list})}).catch(function(){});
+  // 날짜를 확실한 YYYY-MM-DD 문자열로 전송 (시트의 Date 자동변환 방지를 위해 date_str 필드 추가)
+  var safelist=list.map(function(e){
+    return Object.assign({},e,{date:normalizeDate(e.date), date_str:normalizeDate(e.date)});
+  });
+  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"add",entries:safelist})}).catch(function(){});
 }
 function deleteFromSheets(id){
   if(!S.scriptUrl) return;
