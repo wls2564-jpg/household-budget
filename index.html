@@ -1036,15 +1036,35 @@ function submitEditRecurring(){
 }
 
 // ─── 정기지출 자동등록 ──────────────────────
-function checkRecurring(){
+function checkRecurring(forceCheck){
   var todayStr=today();
-  if(LS.get("mm_rec_checked","")===todayStr) return;
-  // [FIX] S.curMonth가 아닌 실제 오늘의 연-월 기준으로 체크
+  if(!forceCheck && LS.get("mm_rec_checked","")===todayStr) return;
   var realMonth=ym(todayStr);
   var p=realMonth.split("-");
-  var done=new Set(S.entries.filter(function(e){return e.autoId&&ym(e.date)===realMonth;}).map(function(e){return e.autoId;}));
   var day=new Date().getDate();
-  var toAdd=S.recurring.filter(function(r){return r.active&&r.dayOfMonth<=day&&!done.has(r.id);});
+
+  // autoId 기반 + 메모 기반 양쪽으로 "이미 등록됨" 체크
+  var doneAutoId=new Set();
+  var doneKey=new Set();
+  S.entries.filter(function(e){ return ym(e.date)===realMonth; }).forEach(function(e){
+    if(e.autoId) doneAutoId.add(e.autoId);
+    // autoId 없어도 "(자동)" 메모+카테고리+금액으로 매칭
+    if(e.note && e.note.indexOf("(자동)")>=0){
+      var noteName=(e.note||"").replace("(자동)","").trim();
+      doneKey.add(e.category+"_"+e.amount+"_"+noteName);
+    }
+  });
+
+  var toAdd=S.recurring.filter(function(r){
+    if(!r.active || r.dayOfMonth>day) return false;
+    // autoId로 이미 등록 확인
+    if(doneAutoId.has(r.id)) return false;
+    // 메모 기반으로도 이미 등록 확인
+    var key=r.category+"_"+r.amount+"_"+r.name;
+    if(doneKey.has(key)) return false;
+    return true;
+  });
+
   if(!toAdd.length){ LS.set("mm_rec_checked",todayStr); return; }
   var news=toAdd.map(function(r){
     return {id:uid(),autoId:r.id,addedBy:"자동",date:p[0]+"-"+p[1]+"-"+String(r.dayOfMonth).padStart(2,"0"),category:r.category,amount:r.amount,type:"지출",note:r.name+"(자동)",card:""};
@@ -1213,7 +1233,10 @@ function pullFromSheet(retry){
     });
     var localOnly=S.entries.filter(function(e){return !remoteMap[e.id];});
     S.entries=Object.values(remoteMap).concat(localOnly);
-    save("entries"); render();
+    save("entries");
+    // 동기화 후 고정지출 자동등록 재확인 (autoId 유실로 누락된 경우 복구)
+    checkRecurring(true);
+    render();
     S.syncStatus="ok"; renderShare();
   },function(){
     if(!retry){
@@ -1267,7 +1290,7 @@ function deleteFromSheets(id){
 }
 
 // ─── 초기화 ─────────────────────────────────
-checkRecurring();
+checkRecurring(true);
 render();
 startSync();
 </script>
