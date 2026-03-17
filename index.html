@@ -417,6 +417,7 @@ function won(n){ return Number(n||0).toLocaleString("ko-KR")+"원"; }
 function ymLbl(s){ var p=s.split("-"); return p[0]+"년 "+Number(p[1])+"월"; }
 function getCat(name){ return S.categories.find(function(c){return c.name===name;})||{icon:"💸",color:"#9CA3AF",name:name}; }
 function getCard(name){ return S.cards.find(function(c){return c.name===name;}); }
+function escapeHTML(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 // [FIX] toast 타이머 중복 방지
 var toastTimer=null;
@@ -468,9 +469,8 @@ var S = {
   formType:"지출", formCat:"", formCard:"",
   editingId:null, editType:"지출", editCat:"", editCard:"",
   editingRecId:null,
-  // 삭제/수정 대기열: 시트 반영 전에 다른 기기가 pull해서 되살리는 것 방지
-  pendingDeletes: LS.get("mm_pending_del",[]),
-  pendingEdits:   LS.get("mm_pending_edit",{})  // {id: updatedEntryObj}
+  // 삭제한 id 목록 — pull 시 시트에서 되살아나는 것 방지
+  deletedIds: LS.get("mm_deleted_ids",[])
 };
 
 function save(key){
@@ -558,17 +558,17 @@ function renderHome(){
 
 function entryRowHTML(e){
   var cat=getCat(e.category), card=getCard(e.card);
-  var cardBadge=card?'<span class="card-badge" style="background:'+card.color+'22;color:'+card.color+'">'+card.name+'</span>':"";
-  var byBadge=e.addedBy?'<span>· '+e.addedBy+'</span>':"";
-  return '<div class="entry-row" data-id="'+e.id+'">'
+  var cardBadge=card?'<span class="card-badge" style="background:'+card.color+'22;color:'+card.color+'">'+escapeHTML(card.name)+'</span>':"";
+  var byBadge=e.addedBy?'<span>· '+escapeHTML(e.addedBy)+'</span>':"";
+  return '<div class="entry-row" data-id="'+escapeHTML(e.id)+'">'
     +'<div class="entry-icon" style="background:'+cat.color+'1A">'+cat.icon+'</div>'
-    +'<div class="entry-info"><div class="entry-name">'+(e.note||e.category)+'</div>'
-    +'<div class="entry-meta"><span>'+e.category+'</span>'+cardBadge+byBadge+'</div></div>'
+    +'<div class="entry-info"><div class="entry-name">'+escapeHTML(e.note||e.category)+'</div>'
+    +'<div class="entry-meta"><span>'+escapeHTML(e.category)+'</span>'+cardBadge+byBadge+'</div></div>'
     +'<div class="entry-amount">'
     +'<div class="amount" style="color:'+(e.type==="수입"?"var(--green)":"var(--red)")+'">'+(e.type==="수입"?"+":"-")+Number(e.amount).toLocaleString()+'</div>'
     +'<div class="entry-btns">'
-    +'<button class="act-btn" style="background:#F2F2F7;color:var(--mid);" data-edit="'+e.id+'">✏️수정</button>'
-    +'<button class="act-btn" style="background:#FF453A1A;color:var(--red);" data-del="'+e.id+'">삭제</button>'
+    +'<button class="act-btn" style="background:#F2F2F7;color:var(--mid);" data-edit="'+escapeHTML(e.id)+'">✏️수정</button>'
+    +'<button class="act-btn" style="background:#FF453A1A;color:var(--red);" data-del="'+escapeHTML(e.id)+'">삭제</button>'
     +'</div></div></div>';
 }
 
@@ -732,9 +732,12 @@ function renderEditCats(){
     var sel=S.editCat===c.name;
     return '<button class="chip" onclick="S.editCat=\''+c.name+'\';renderEditCats()" style="background:'+(sel?c.color:c.color+'20')+';color:'+(sel?'#fff':'var(--dark)')+';">'+c.icon+' '+c.name+'</button>';
   }).join("");
+  renderEditCards();
+}
+function renderEditCards(){
   document.getElementById("editCardChips").innerHTML=S.cards.map(function(c){
     var sel=S.editCard===c.name;
-    return '<button class="chip" onclick="S.editCard=\''+c.name+'\';renderEditCats()" style="background:'+(sel?c.color:c.color+'20')+';color:'+(sel?'#fff':'var(--dark)')+';">'+c.name+'</button>';
+    return '<button class="chip" onclick="S.editCard=\''+c.name+'\';renderEditCards()" style="background:'+(sel?c.color:c.color+'20')+';color:'+(sel?'#fff':'var(--dark)')+';">'+c.name+'</button>';
   }).join("");
 }
 function submitEdit(){
@@ -749,12 +752,8 @@ function submitEdit(){
     card:S.editType==="지출"?S.editCard:""
   });
   S.entries=S.entries.map(function(e){return e.id===S.editingId?updated:e;});
-  // 수정 대기열에 추가 (동기화 시 시트의 구 버전으로 덮어쓰는 것 방지)
-  S.pendingEdits[S.editingId]=updated;
-  LS.set("mm_pending_edit",S.pendingEdits);
   save("entries");
-  deleteFromSheets(S.editingId);
-  pushToSheets([updated]);
+  syncMonth(ym(updated.date));
   closeModal("editModal");
   render();
   showToast("수정됐어요 ✅");
@@ -763,16 +762,22 @@ function submitEdit(){
 function addEntries(list){
   S.entries=S.entries.concat(list);
   save("entries"); render();
-  pushToSheets(list);
+  // 추가된 항목의 월들을 모두 동기화
+  var months=Array.from(new Set(list.map(function(e){return ym(e.date);})));
+  months.forEach(function(m){ syncMonth(m); });
 }
 function deleteEntry(id){
   if(!confirm("삭제할까요?")) return;
+  var entry=S.entries.find(function(e){return e.id===id;});
+  var month=entry?ym(entry.date):S.curMonth;
   S.entries=S.entries.filter(function(e){return e.id!==id;});
-  // 삭제 대기열에 추가 (동기화 시 시트에서 되살아나는 것 방지)
-  if(S.pendingDeletes.indexOf(id)<0) S.pendingDeletes.push(id);
-  LS.set("mm_pending_del",S.pendingDeletes);
-  save("entries"); deleteFromSheets(id); render();
-  showToast("삭제됐어요",false);
+  // 삭제 id 기록 — pull 시 시트에서 되살아나는 것 방지
+  if(S.deletedIds.indexOf(id)<0) S.deletedIds.push(id);
+  LS.set("mm_deleted_ids",S.deletedIds);
+  save("entries");
+  syncMonth(month);
+  render();
+  showToast("삭제됐어요 🗑️");
 }
 
 // ─── 설정 ───────────────────────────────────
@@ -949,7 +954,7 @@ function addRecurringTab(){
     var newEntry={id:uid(),autoId:newRec.id,addedBy:"자동",date:dateStr,category:category,amount:amount,type:"지출",note:name+"(자동)",card:""};
     S.entries.push(newEntry);
     save("entries");
-    pushToSheets([newEntry]);
+    syncMonth(ym(dateStr));
   }
 
   // 입력 폼 초기화
@@ -1028,8 +1033,7 @@ function submitEditRecurring(){
       var updatedEntry=Object.assign({},e,{
         category:category, amount:amount, note:name+"(자동)", date:newDate
       });
-      deleteFromSheets(e.id);
-      pushToSheets([updatedEntry]);
+      syncMonth(ym(newDate));
       return updatedEntry;
     }
     return e;
@@ -1079,7 +1083,7 @@ function checkRecurring(forceCheck){
   });
   S.entries=S.entries.concat(news);
   save("entries");
-  pushToSheets(news);
+  syncMonth(realMonth);
   LS.set("mm_rec_checked",todayStr);
 }
 
@@ -1165,13 +1169,17 @@ function cleanDuplicateRecurring(){
   }).filter(Boolean).slice(0,10).join("\n");
 
   if(!confirm(toRemove.length+"개의 중복 고정지출 내역을 삭제할까요?\n\n[삭제 대상 일부]\n"+preview)) return;
+  var monthsToSync=new Set();
   toRemove.forEach(function(id){
-    deleteFromSheets(id);
-    if(S.pendingDeletes.indexOf(id)<0) S.pendingDeletes.push(id);
+    var e=S.entries.find(function(x){return x.id===id;});
+    if(e) monthsToSync.add(ym(e.date));
+    if(S.deletedIds.indexOf(id)<0) S.deletedIds.push(id);
   });
-  LS.set("mm_pending_del",S.pendingDeletes);
+  LS.set("mm_deleted_ids",S.deletedIds);
   S.entries=S.entries.filter(function(e){return toRemove.indexOf(e.id)<0;});
-  save("entries"); render();
+  save("entries");
+  monthsToSync.forEach(function(m){ syncMonth(m); });
+  render();
   el.style.color="var(--green)";
   el.textContent="✅ "+toRemove.length+"개 중복 내역 삭제 완료!";
   showToast(toRemove.length+"개 중복 정리됨 ✅");
@@ -1216,74 +1224,40 @@ function jsonp(url, onSuccess, onError){
 function pullFromSheet(retry){
   if(!S.scriptUrl) return;
   S.syncStatus="syncing"; renderShare();
-  // 동기화 전 로컬 autoId 맵만 저장 (autoId 복원용)
-  var localAutoIdMap={};
-  S.entries.forEach(function(e){
-    if(e.id && e.autoId) localAutoIdMap[e.id]=e.autoId;
-  });
   jsonp(S.scriptUrl+"?action=entries&t="+Date.now(),function(data){
     if(!data||!data.data){ S.syncStatus="err"; renderShare(); return; }
-    var remoteMap={};
+
+    var deletedSet=new Set(S.deletedIds);
+    var localMap={};
+    S.entries.forEach(function(e){ if(e.id) localMap[e.id]=e; });
+
     data.data.forEach(function(r){
       if(!r.id) return;
-      // date_str(문자열 보존 필드) → date 순서로 시도
+      if(deletedSet.has(String(r.id))) return; // 내가 삭제한 항목은 무시
+      if(localMap[r.id]) return; // 내가 이미 가진 항목은 로컬 우선
+      // 상대방이 추가한 새 항목만 로컬에 합침
       var dateSource=r.date_str||r.date;
       var normalized=normalizeDate(dateSource);
-      var merged=Object.assign({},r,{date:normalized,amount:Number(r.amount)||0});
-      // 시트에서 autoId가 유실된 경우 로컬 값 복원
-      if(!merged.autoId && localAutoIdMap[r.id]){
-        merged.autoId=localAutoIdMap[r.id];
-      }
-      remoteMap[r.id]=merged;
+      localMap[r.id]=Object.assign({},r,{date:normalized,amount:Number(r.amount)||0});
     });
-    // 로컬에만 있는 항목 = 아직 시트에 안 올라간 것 → 유지
-    var localOnly=S.entries.filter(function(e){return !remoteMap[e.id];});
-    var merged=Object.values(remoteMap).concat(localOnly);
 
-    // 삭제 대기열 적용: 로컬에서 삭제했지만 시트에서 아직 안 지워진 항목 제거
-    if(S.pendingDeletes.length){
-      var delSet=new Set(S.pendingDeletes);
-      merged=merged.filter(function(e){return !delSet.has(e.id);});
-      // 시트에서 해당 항목이 이미 사라졌으면 대기열에서 제거
-      var stillInRemote=S.pendingDeletes.filter(function(id){return remoteMap[id];});
-      // 시트에 아직 있으면 다시 삭제 요청
-      stillInRemote.forEach(function(id){ deleteFromSheets(id); });
-      // 시트에서 사라진 건 대기열에서 제거
-      S.pendingDeletes=stillInRemote;
-      LS.set("mm_pending_del",S.pendingDeletes);
-    }
+    // _config 항목 처리
+    var allEntries=Object.values(localMap);
+    applyRemoteConfig(allEntries);
+    S.entries=allEntries.filter(function(e){return e.type!=="_config"&&e.id!==CONFIG_ENTRY_ID;});
 
-    // 수정 대기열 적용: 로컬에서 수정했지만 시트에 아직 반영 안 된 항목
-    var editKeys=Object.keys(S.pendingEdits);
-    if(editKeys.length){
-      merged=merged.map(function(e){
-        if(S.pendingEdits[e.id]) return S.pendingEdits[e.id];
-        return e;
-      });
-      // 시트에 반영된 건 (시트 데이터와 로컬 수정본이 일치) 대기열에서 제거
-      editKeys.forEach(function(id){
-        var remote=remoteMap[id];
-        var local=S.pendingEdits[id];
-        if(remote && remote.amount===local.amount && remote.category===local.category && normalizeDate(remote.date)===local.date){
-          delete S.pendingEdits[id];
-        }
-      });
-      LS.set("mm_pending_edit",S.pendingEdits);
-    }
+    // deletedIds 정리 — 시트에서도 사라진 항목은 목록에서 제거
+    var remoteIds=new Set(data.data.map(function(r){return String(r.id);}));
+    S.deletedIds=S.deletedIds.filter(function(id){return remoteIds.has(id);});
+    LS.set("mm_deleted_ids",S.deletedIds);
 
-    S.entries=merged;
-    // _config 항목에서 카테고리/카드 설정 동기화
-    applyRemoteConfig(merged);
-    // _config 항목은 실제 entries에서 제외
-    S.entries=S.entries.filter(function(e){return e.type!=="_config"&&e.id!==CONFIG_ENTRY_ID;});
     save("entries");
-    // 동기화 후 고정지출 자동등록 확인 (하루 1회만 실행됨)
-    checkRecurring();
+    checkRecurring(); // pull 완료 후에만 실행
     render();
     S.syncStatus="ok"; renderShare();
   },function(){
     if(!retry){
-      setTimeout(function(){ pullFromSheet(true); }, 5000);
+      setTimeout(function(){ pullFromSheet(true); },5000);
     } else {
       S.syncStatus="err"; renderShare();
     }
@@ -1319,17 +1293,18 @@ function pushRecurring(){
   if(!S.scriptUrl) return;
   fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"syncRecurring",list:S.recurring})}).catch(function(){});
 }
-function pushToSheets(list){
-  if(!S.scriptUrl||!list.length) return;
-  // 날짜를 확실한 YYYY-MM-DD 문자열로 전송 (시트의 Date 자동변환 방지를 위해 date_str 필드 추가)
-  var safelist=list.map(function(e){
-    return Object.assign({},e,{date:normalizeDate(e.date), date_str:normalizeDate(e.date)});
-  });
-  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"add",entries:safelist})}).catch(function(){});
-}
-function deleteFromSheets(id){
+
+// ─── 핵심: 월 단위 전체 덮어쓰기 ───────────────
+function syncMonth(month){
   if(!S.scriptUrl) return;
-  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id:id})}).catch(function(){});
+  var entries=S.entries.filter(function(e){
+    return e.type!=="_config" && ym(e.date)===month;
+  }).map(function(e){
+    return Object.assign({},e,{date:normalizeDate(e.date),date_str:normalizeDate(e.date)});
+  });
+  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({action:"replaceMonth",month:month,entries:entries})
+  }).catch(function(){});
 }
 
 // ─── 카테고리/카드 설정 동기화 ──────────────
@@ -1349,7 +1324,8 @@ function pushConfig(){
     card:"",
     addedBy:S.settings.userName||"system"
   };
-  deleteFromSheets(CONFIG_ENTRY_ID);
+  // config는 delete 후 add 방식 유지 (날짜가 2000-01-01이라 replaceMonth 대상 아님)
+  fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id:CONFIG_ENTRY_ID})}).catch(function(){});
   setTimeout(function(){
     fetch(S.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"add",entries:[configEntry]})}).catch(function(){});
   },500);
@@ -1383,8 +1359,8 @@ function applyRemoteConfig(remoteEntries){
   }catch(e){}
 }
 
-// ─── 초기화 ─────────────────────────────────
-checkRecurring(true);
+// scriptUrl 없으면 로컬 기준으로만 checkRecurring 실행 (pull 콜백에서 처리됨)
+if(!S.scriptUrl) checkRecurring();
 render();
 startSync();
 </script>
