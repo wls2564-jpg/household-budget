@@ -373,14 +373,32 @@ function ym(d){
 function normalizeDate(d){
   if(!d) return today();
   var s=String(d).trim();
+  // 이미 YYYY-MM-DD 형식이면 그대로 반환
   if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // ISO 형식 (T 포함)
   if(s.includes("T")) return s.slice(0,10);
-  if(/^\d+(\.\d+)?$/.test(s)) return today();
-  var dt=new Date(d);
+  // 구글 시트 날짜 직렬번호 변환 (1899-12-30 기준)
+  if(/^\d+(\.\d+)?$/.test(s)){
+    var serial=Math.floor(Number(s));
+    if(serial>40000 && serial<60000){
+      // 구글 시트 epoch: 1899-12-30
+      var epoch=new Date(1899,11,30);
+      epoch.setDate(epoch.getDate()+serial);
+      return epoch.getFullYear()+"-"+String(epoch.getMonth()+1).padStart(2,"0")+"-"+String(epoch.getDate()).padStart(2,"0");
+    }
+    return today();
+  }
+  // [FIX] new Date() 파싱 시 UTC 시차 문제 방지
+  // "YYYY/MM/DD" 또는 "MM/DD/YYYY" 등 슬래시 형식 처리
+  var slashMatch=s.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);
+  if(slashMatch) return slashMatch[1]+"-"+slashMatch[2].padStart(2,"0")+"-"+slashMatch[3].padStart(2,"0");
+  // "Mar 17, 2025" 등 영문 날짜 → 로컬 시간 기준으로 파싱
+  var dt=new Date(s);
   if(!isNaN(dt.getTime())){
+    // UTC가 아닌 로컬 시간 기준으로 추출
     return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
   }
-  return s.slice(0,10);
+  return today();
 }
 
 function won(n){ return Number(n||0).toLocaleString("ko-KR")+"원"; }
@@ -1093,10 +1111,25 @@ function jsonp(url, onSuccess, onError){
 function pullFromSheet(retry){
   if(!S.scriptUrl) return;
   S.syncStatus="syncing"; renderShare();
+  // [FIX] 동기화 전 로컬 날짜 맵 저장 (시트의 잘못된 날짜로 덮어쓰기 방지)
+  var localDateMap={};
+  S.entries.forEach(function(e){ if(e.id && e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) localDateMap[e.id]=e.date; });
   jsonp(S.scriptUrl+"?action=entries&t="+Date.now(),function(data){
     if(!data||!data.data){ S.syncStatus="err"; renderShare(); return; }
     var remoteMap={};
-    data.data.forEach(function(r){ if(r.id) remoteMap[r.id]=Object.assign({},r,{date:normalizeDate(r.date),amount:Number(r.amount)||0}); });
+    data.data.forEach(function(r){
+      if(!r.id) return;
+      var normalized=normalizeDate(r.date);
+      // 로컬에 이미 정확한 YYYY-MM-DD 날짜가 있고, 시트에서 온 날짜가 직렬번호였다면 로컬 날짜 우선
+      if(localDateMap[r.id] && normalized!==localDateMap[r.id]){
+        var rawDate=String(r.date||"").trim();
+        // 시트에서 온 값이 YYYY-MM-DD가 아닌 경우(직렬번호, 변환 오류 등) 로컬 날짜 유지
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+          normalized=localDateMap[r.id];
+        }
+      }
+      remoteMap[r.id]=Object.assign({},r,{date:normalized,amount:Number(r.amount)||0});
+    });
     var localOnly=S.entries.filter(function(e){return !remoteMap[e.id];});
     S.entries=Object.values(remoteMap).concat(localOnly);
     save("entries"); render();
